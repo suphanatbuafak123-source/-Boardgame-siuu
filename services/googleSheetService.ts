@@ -1,11 +1,11 @@
 
 import { BorrowerInfo } from '../types';
 
-// หมายเหตุ: ตรวจสอบให้แน่ใจว่าได้ Deploy Google Apps Script เป็น "Anyone" และใช้ URL ล่าสุดที่ได้จากการ Deploy
-const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycby_BgOS0nvxRP1x3sjKDgic4jIez8_zZawKRA7kOQXGKp6ySzGhDI-pKg_kKexx6x3DJw/exec';
+// สำคัญ: ต้องเป็น URL จากการ Deploy ล่าสุด (Deploy -> New Deployment -> Anyone)
+const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwX10-2EbRU-OcoWWI4qNw6qN6JOp0eK3m52DO2BS_3KZfML2BjY4e2dPh6gOesgpWrpQ/exec';
 
 interface ApiResponse {
-  status: 'success' | 'not_found' | 'error';
+  status: 'success' | 'not_found' | 'error' | 'blocked' | 'borrowed' | 'available';
   message?: string;
   items?: any[];
 }
@@ -17,40 +17,33 @@ interface ServiceResponse {
 }
 
 /**
- * ดึงรายการบอร์ดเกมที่ยังไม่คืน
- * ปรับเป็น POST เพื่อเลี่ยงปัญหา CORS ในบางเบราว์เซอร์
+ * ดึงข้อมูลผู้ยืมทั้งหมด
+ * ปรับเป็น GET เพื่อให้ Google Apps Script ทำงานได้เสถียรที่สุดในการอ่านข้อมูล
  */
 export const fetchBorrowedItems = async (): Promise<ServiceResponse> => {
   try {
-    const response = await fetch(GOOGLE_SHEET_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify({ action: 'get_borrowed' }),
+    // การใช้ GET พร้อม Query Parameter จะช่วยให้ข้ามปัญหา CORS และ Redirect ได้ดีขึ้น
+    const response = await fetch(`${GOOGLE_SHEET_API_URL}?action=get_borrowed`, {
+      method: 'GET',
+      mode: 'cors',
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
     const result: ApiResponse = await response.json();
     if (result.status === 'success') {
       return { success: true, data: result.items || [] };
     }
-    return { success: false, message: result.message || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์' };
+    return { success: false, message: result.message || 'ไม่พบรายการที่ยืม' };
   } catch (error) {
     console.error('❌ Error fetching from Google Sheet:', error);
     return { 
       success: false, 
-      message: error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (Network Error)' 
+      message: 'ไม่สามารถดึงข้อมูลได้ กรุณาตรวจสอบว่าได้ตั้งค่า Deployment เป็น Anyone หรือยัง' 
     };
   }
 };
 
-/**
- * บันทึกการยืม
- */
 export const recordBorrowing = async (borrowerInfo: BorrowerInfo): Promise<ServiceResponse> => {
   try {
     const results = [];
@@ -74,20 +67,17 @@ export const recordBorrowing = async (borrowerInfo: BorrowerInfo): Promise<Servi
       results.push(resData);
     }
     
+    const anyBlocked = results.some(r => r.status === 'blocked');
     const allSuccess = results.every(r => r.status === 'success');
-    return { 
-      success: allSuccess, 
-      message: allSuccess ? 'บันทึกสำเร็จ' : 'บางรายการบันทึกล้มเหลว' 
-    };
+
+    if (anyBlocked) return { success: false, message: 'บอร์ดเกมบางรายการถูกคนอื่นยืมตัดหน้าไปแล้ว' };
+    return { success: allSuccess, message: allSuccess ? 'บันทึกสำเร็จ' : 'บางรายการบันทึกล้มเหลว' };
   } catch (error) {
     console.error('❌ Error recording borrow:', error);
-    return { success: false, message: 'ไม่สามารถส่งข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต' };
+    return { success: false, message: 'ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง' };
   }
 };
 
-/**
- * บันทึกการคืน
- */
 export const recordReturn = async (studentId: string, gameName: string): Promise<ServiceResponse> => {
   try {
     const payload = { 
@@ -101,8 +91,6 @@ export const recordReturn = async (studentId: string, gameName: string): Promise
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
     });
-    
-    if (!response.ok) throw new Error('Network response was not ok');
     
     const result: ApiResponse = await response.json();
     return { success: result.status === 'success', message: result.message };

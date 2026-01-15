@@ -24,16 +24,21 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
   const [studentIdInput, setStudentIdInput] = useState('');
   const [isConfirmingReturn, setIsConfirmingReturn] = useState<null | BorrowedItem>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const result = await fetchBorrowedItems();
-      if (result.success && result.data) {
-        setBorrowedItems(result.data);
+      // Fix: Removed non-existent 'status' property check and simplified success handling
+      if (result.success) {
+        setBorrowedItems(result.data || []);
       } else {
-        setError(result.message || 'ไม่สามารถโหลดข้อมูลได้');
+        setBorrowedItems([]);
+        if (result.message) {
+           setError(result.message);
+        }
       }
     } catch (err) {
       setError('เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่');
@@ -49,7 +54,8 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
   const handleReturn = async () => {
     if (!isConfirmingReturn) return;
     
-    if (studentIdInput !== isConfirmingReturn.studentId) {
+    // ตรวจสอบความถูกต้องเบื้องต้น (Client-side)
+    if (String(studentIdInput).trim() !== String(isConfirmingReturn.studentId).trim()) {
       alert('รหัสนักศึกษาไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
       return;
     }
@@ -58,10 +64,11 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
     try {
       const result = await recordReturn(studentIdInput, isConfirmingReturn.gameName);
       if (result.success) {
-        alert('คืนบอร์ดเกมสำเร็จ!');
+        setShowSuccess(true);
         setIsConfirmingReturn(null);
         setStudentIdInput('');
-        loadData(); // รีโหลดข้อมูลหลังคืนสำเร็จ
+        // รีโหลดข้อมูลหลังคืนสำเร็จแบบเงียบๆ
+        loadData();
       } else {
         alert(result.message || 'ไม่สามารถทำรายการได้');
       }
@@ -82,6 +89,27 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
     return game?.category || "บอร์ดเกม";
   };
 
+  // แสดงหน้าจอสำเร็จ
+  if (showSuccess) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-12 bg-white shadow-2xl rounded-[40px] max-w-lg mx-auto mt-10 animate-scale-in">
+        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8">
+          <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        <h2 className="text-4xl font-black text-slate-800 mb-3">คืนสำเร็จ!</h2>
+        <p className="text-blue-600 font-bold text-xl mb-10">คุณคืนบอร์ดเกมแล้ว</p>
+        <button
+          onClick={() => setShowSuccess(false)}
+          className="w-full bg-blue-600 text-white font-black py-5 px-8 rounded-2xl hover:bg-blue-700 transition duration-300 shadow-xl shadow-blue-500/20 transform hover:-translate-y-1"
+        >
+          กลับไปที่รายการยืม
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in">
       <div className="flex items-center justify-between mb-12">
@@ -89,7 +117,7 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           กลับหน้าหลัก
         </button>
-        <h2 className="text-4xl font-black text-slate-800 text-center flex-1 pr-20">ประวัติการยืม</h2>
+        <h2 className="text-3xl md:text-4xl font-black text-slate-800 text-center flex-1 pr-0 md:pr-20">รายการบอร์ดเกมที่กำลังยืม</h2>
         <button 
           onClick={loadData} 
           disabled={isLoading}
@@ -117,47 +145,55 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
       ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-slate-500 font-bold">กำลังดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์...</p>
+          <p className="text-slate-500 font-bold">กำลังดึงข้อมูลล่าสุดจาก Google Sheets...</p>
+        </div>
+      ) : borrowedItems.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-[40px] border-4 border-dashed border-slate-100 shadow-sm">
+          <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <p className="text-slate-400 font-bold text-xl">ขณะนี้ไม่มีบอร์ดเกมที่ถูกยืมอยู่</p>
+          <button onClick={onBack} className="mt-6 text-blue-600 font-bold hover:underline">ไปยืมบอร์ดเกมเลย!</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {borrowedItems.map((item, index) => (
-            <div key={index} className="flex gap-6 group animate-scale-in">
+            <div key={index} className="flex gap-6 group animate-scale-in bg-white p-4 rounded-3xl shadow-sm border border-slate-50 hover:shadow-md transition-shadow">
               <div className="relative flex-shrink-0">
-                <div className="w-32 h-44 md:w-36 md:h-48 rounded-lg overflow-hidden shadow-md border border-slate-200 transition-transform duration-300 group-hover:-translate-y-1">
+                <div className="w-32 h-44 md:w-36 md:h-48 rounded-2xl overflow-hidden shadow-md border border-slate-100 transition-transform duration-300 group-hover:-translate-y-1">
                   <img src={getGameImage(item.gameName)} alt={item.gameName} className="w-full h-full object-cover" />
-                  <div className="absolute top-2 left-0 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-r shadow-sm">GAME</div>
+                  <div className="absolute top-2 left-0 bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-r shadow-sm">MEDIA</div>
                 </div>
               </div>
 
               <div className="flex flex-col justify-between py-1 flex-1 min-w-0">
                 <div className="space-y-1.5">
-                  <h3 className="text-lg font-black text-blue-800 leading-tight truncate" title={item.gameName}>
+                  <h3 className="text-lg font-black text-slate-800 leading-tight truncate" title={item.gameName}>
                     {item.gameName}
                   </h3>
-                  <p className="text-slate-500 text-sm font-medium">ทีมงาน {getGameCategory(item.gameName)}</p>
+                  <p className="text-slate-500 text-sm font-medium">{getGameCategory(item.gameName)}</p>
                   
-                  <div className="space-y-0.5 pt-2">
+                  <div className="space-y-1 pt-2">
                     <div className="flex text-xs text-slate-400 font-bold uppercase tracking-tight">
-                      <span className="w-20">วันที่ยืม</span>
-                      <span className="text-slate-600">{item.timestamp?.split(' ')[0] || '-'}</span>
-                    </div>
-                    <div className="flex text-xs text-slate-400 font-bold uppercase tracking-tight pt-1">
-                      <span className="w-20">ผู้ยืม</span>
-                      <span className="text-slate-700 font-black">{item.studentId}</span>
+                      <span className="w-16">ผู้ยืม:</span>
+                      <span className="text-blue-600 font-black">{item.studentId}</span>
                     </div>
                     <div className="flex text-xs text-slate-400 font-bold uppercase tracking-tight">
-                      <span className="w-20">ห้อง/สาขา</span>
-                      <span className="text-slate-600 truncate">{item.classroom} - {item.major}</span>
+                      <span className="w-16">สาขา:</span>
+                      <span className="text-slate-600 truncate">{item.major}</span>
+                    </div>
+                    <div className="flex text-xs text-slate-400 font-bold uppercase tracking-tight">
+                      <span className="w-16">ห้อง:</span>
+                      <span className="text-slate-600">{item.classroom}</span>
                     </div>
                   </div>
                 </div>
 
                 <button 
                   onClick={() => setIsConfirmingReturn(item)}
-                  className="mt-4 bg-[#f15a24] hover:bg-[#d44a1b] text-white text-sm font-black py-2.5 px-8 rounded-full shadow-lg shadow-orange-500/20 transform hover:scale-105 active:scale-95 transition-all w-fit"
+                  className="mt-4 bg-[#f15a24] hover:bg-[#d44a1b] text-white text-sm font-black py-2.5 px-8 rounded-2xl shadow-lg shadow-orange-500/20 transform hover:scale-105 active:scale-95 transition-all w-full md:w-fit"
                 >
-                  คืนสื่อ
+                  คืนบอร์ดเกม
                 </button>
               </div>
             </div>
@@ -165,18 +201,20 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         </div>
       )}
 
+      {/* Modal ยืนยันการคืน */}
       {isConfirmingReturn && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl animate-scale-in">
-            <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการคืน</h3>
+            <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันรหัสผู้ยืม</h3>
             <p className="text-slate-500 text-sm mb-6">กรุณากรอกรหัสนักศึกษา <span className="font-black text-slate-800">{isConfirmingReturn.studentId}</span> เพื่อคืนเกม <span className="font-bold text-blue-600">{isConfirmingReturn.gameName}</span></p>
             
             <input
               autoFocus
               type="text"
-              placeholder="กรอกรหัสนักศึกษาเพื่อยืนยัน"
+              placeholder="กรอกรหัสนักศึกษา"
               value={studentIdInput}
               onChange={(e) => setStudentIdInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleReturn()}
               className="w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg mb-6 text-center"
             />
 
@@ -196,16 +234,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {!isLoading && !error && borrowedItems.length === 0 && (
-        <div className="text-center py-20 bg-white rounded-[40px] border-4 border-dashed border-slate-100">
-          <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          </div>
-          <p className="text-slate-400 font-bold text-xl">ขณะนี้ไม่มีบอร์ดเกมที่ถูกยืมอยู่</p>
-          <button onClick={onBack} className="mt-6 text-blue-600 font-bold hover:underline">ไปยืมบอร์ดเกมเลย!</button>
         </div>
       )}
     </div>
