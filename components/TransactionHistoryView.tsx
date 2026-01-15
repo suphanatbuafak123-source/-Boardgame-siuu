@@ -48,7 +48,8 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return String(dateStr).split('T')[0];
-      return d.toLocaleDateString('th-TH', { 
+      // ใช้ locale 'en-GB' หรือ 'th-TH-u-ca-gregory' เพื่อบังคับแสดงเป็นปี ค.ศ.
+      return d.toLocaleDateString('en-GB', { 
         year: 'numeric', 
         month: 'short', 
         day: 'numeric' 

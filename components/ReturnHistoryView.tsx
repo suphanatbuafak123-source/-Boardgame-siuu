@@ -14,7 +14,7 @@ interface BorrowedItem {
   classroom: string;
   major: string;
   timestamp: string;
-  borrowTime: string;
+  borrowTimestamp: string; 
 }
 
 const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBack }) => {
@@ -25,6 +25,7 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
   const [isConfirmingReturn, setIsConfirmingReturn] = useState<null | BorrowedItem>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [returnError, setReturnError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -35,12 +36,10 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         setBorrowedItems(result.data || []);
       } else {
         setBorrowedItems([]);
-        if (result.message) {
-           setError(result.message);
-        }
+        if (result.message) setError(result.message);
       }
     } catch (err) {
-      setError('เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่');
+      setError('เกิดข้อผิดพลาดในการดึงข้อมูล');
     } finally {
       setIsLoading(false);
     }
@@ -50,155 +49,143 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
     loadData();
   }, [loadData]);
 
-  const handleReturn = async () => {
+  const handleManualReturn = async () => {
     if (!isConfirmingReturn) return;
     
-    // ตรวจสอบความยาวเบื้องต้น (ต้อง 5 หลัก)
-    if (studentIdInput.length !== 5) {
-      alert('รหัสนักศึกษาต้องมี 5 หลักเท่านั้น');
+    const inputId = studentIdInput.trim();
+    const targetId = String(isConfirmingReturn.studentId).trim();
+    
+    if (inputId.length !== 5) {
+      setReturnError('รหัสนักศึกษาต้องมี 5 หลัก');
       return;
     }
-
-    // ตรวจสอบความถูกต้องกับข้อมูลในระบบ
-    if (String(studentIdInput).trim() !== String(isConfirmingReturn.studentId).trim()) {
-      alert('รหัสนักศึกษาไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
+    
+    if (inputId !== targetId) {
+      setReturnError('รหัสประจำตัวไม่ถูกต้อง');
       return;
     }
 
     setIsSubmitting(true);
+    setReturnError(null);
     try {
-      const result = await recordReturn(studentIdInput, isConfirmingReturn.gameName);
+      const result = await recordReturn(inputId, isConfirmingReturn.gameName);
       if (result.success) {
-        setShowSuccess(true);
         setIsConfirmingReturn(null);
         setStudentIdInput('');
-        loadData();
+        setShowSuccess(true);
       } else {
-        alert(result.message || 'ไม่สามารถทำรายการได้');
+        setReturnError(result.message || 'รหัสประจำตัวไม่ถูกต้อง');
       }
     } catch (error) {
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      setReturnError('การเชื่อมต่อขัดข้อง กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getGameImage = (name: string) => {
-    const game = boardGames.find(g => g.name === name);
-    return game?.imageUrl || "https://picsum.photos/seed/default/400/300";
-  };
-
-  const getGameCategory = (name: string) => {
-    const game = boardGames.find(g => g.name === name);
-    return game?.category || "บอร์ดเกม";
-  };
+  const getGameImage = (name: string) => boardGames.find(g => g.name === name)?.imageUrl || "https://picsum.photos/400/300";
 
   if (showSuccess) {
     return (
-      <div className="flex flex-col items-center justify-center text-center p-12 bg-white shadow-2xl rounded-[40px] max-w-lg mx-auto mt-10 animate-scale-in">
+      <div className="flex flex-col items-center justify-center text-center p-12 bg-white shadow-2xl rounded-[40px] max-w-lg mx-auto mt-10 animate-scale-in border-4 border-green-500">
         <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8">
-          <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
-          </svg>
+          <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
         </div>
-        <h2 className="text-4xl font-black text-slate-800 mb-3">คืนสำเร็จ!</h2>
+        <h2 className="text-4xl font-black text-slate-800 mb-3">สำเร็จ!</h2>
         <p className="text-blue-600 font-bold text-xl mb-10">คุณคืนบอร์ดเกมแล้ว</p>
-        <button
-          onClick={() => setShowSuccess(false)}
-          className="w-full bg-blue-600 text-white font-black py-5 px-8 rounded-2xl hover:bg-blue-700 transition duration-300 shadow-xl shadow-blue-500/20 transform hover:-translate-y-1"
-        >
-          กลับไปที่รายการยืม
-        </button>
+        <div className="flex flex-col gap-3 w-full">
+          <button 
+            onClick={() => { setShowSuccess(false); loadData(); }} 
+            className="w-full bg-slate-100 text-slate-700 font-black py-4 rounded-2xl hover:bg-slate-200 transition-all"
+          >
+            ดูรายการยืมอื่น
+          </button>
+          <button 
+            onClick={onBack} 
+            className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-blue-700 transition-all"
+          >
+            กลับหน้าหลัก
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in relative">
+      {/* Top Error Alert Bar */}
+      {returnError && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[110] w-[90%] max-w-xl animate-bounce-short">
+          <div className="bg-red-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center justify-between border-2 border-white/20 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              <span className="font-black text-lg">{returnError}</span>
+            </div>
+            <button onClick={() => setReturnError(null)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-12">
-        <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center font-bold transition-colors">
+        <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center font-bold">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           กลับหน้าหลัก
         </button>
-        <h2 className="text-3xl md:text-4xl font-black text-slate-800 text-center flex-1 pr-0 md:pr-20">รายการบอร์ดเกมที่กำลังยืม</h2>
-        <button 
-          onClick={loadData} 
-          disabled={isLoading}
-          className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-all disabled:opacity-50" 
-          title="รีเฟรชข้อมูล"
-        >
+        <div className="text-center flex-1">
+          <h2 className="text-3xl md:text-4xl font-black text-slate-800">รายการบอร์ดเกมที่กำลังยืม</h2>
+          <p className="text-slate-400 font-bold text-sm mt-1 uppercase tracking-widest">คลิกปุ่มคืนเกมเมื่อเล่นเสร็จสิ้น</p>
+        </div>
+        <button onClick={loadData} disabled={isLoading} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-all disabled:opacity-50">
           <svg className={`w-6 h-6 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
         </button>
       </div>
 
-      {error ? (
-        <div className="bg-red-50 border-2 border-red-100 p-12 rounded-[40px] text-center max-w-2xl mx-auto">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-          </div>
-          <h3 className="text-2xl font-black text-red-800 mb-2">การเชื่อมต่อขัดข้อง</h3>
-          <p className="text-red-600/70 mb-8 font-medium">{error}</p>
-          <button 
-            onClick={loadData}
-            className="bg-red-600 hover:bg-red-700 text-white font-black py-4 px-10 rounded-2xl shadow-xl shadow-red-600/20 transition-all transform hover:scale-105 active:scale-95"
-          >
-            ลองใหม่อีกครั้ง
-          </button>
-        </div>
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-slate-500 font-bold">กำลังดึงข้อมูลล่าสุดจาก Google Sheets...</p>
+          <p className="text-slate-500 font-bold">กำลังดึงข้อมูล...</p>
         </div>
       ) : borrowedItems.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-[40px] border-4 border-dashed border-slate-100 shadow-sm">
-          <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          </div>
-          <p className="text-slate-400 font-bold text-xl">ขณะนี้ไม่มีบอร์ดเกมที่ถูกยืมอยู่</p>
-          <button onClick={onBack} className="mt-6 text-blue-600 font-bold hover:underline">ไปยืมบอร์ดเกมเลย!</button>
+          <p className="text-slate-400 font-bold text-xl">ไม่มีบอร์ดเกมที่กำลังถูกใช้งาน</p>
+          <button onClick={onBack} className="mt-4 text-blue-600 font-bold hover:underline">เลือกเกมเพื่อยืม</button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {borrowedItems.map((item, index) => (
-            <div key={index} className="flex gap-6 group animate-scale-in bg-white p-4 rounded-3xl shadow-sm border border-slate-50 hover:shadow-md transition-shadow">
-              <div className="relative flex-shrink-0">
-                <div className="w-32 h-44 md:w-36 md:h-48 rounded-2xl overflow-hidden shadow-md border border-slate-100 transition-transform duration-300 group-hover:-translate-y-1">
-                  <img src={getGameImage(item.gameName)} alt={item.gameName} className="w-full h-full object-cover" />
-                  <div className="absolute top-2 left-0 bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-r shadow-sm">MEDIA</div>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-between py-1 flex-1 min-w-0">
-                <div className="space-y-1.5">
-                  <h3 className="text-lg font-black text-slate-800 leading-tight truncate" title={item.gameName}>
+            <div key={index} className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col hover:shadow-xl transition-all group overflow-hidden">
+              <div className="flex gap-4 mb-6">
+                <img 
+                  src={getGameImage(item.gameName)} 
+                  alt={item.gameName} 
+                  className="w-24 h-32 object-cover rounded-2xl shadow-md border border-slate-50 group-hover:scale-105 transition-transform duration-300" 
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-black text-slate-800 leading-tight mb-3 truncate" title={item.gameName}>
                     {item.gameName}
                   </h3>
-                  <p className="text-slate-500 text-sm font-medium">{getGameCategory(item.gameName)}</p>
-                  
-                  <div className="space-y-1 pt-2">
-                    <div className="flex text-xs text-slate-400 font-bold uppercase tracking-tight">
-                      <span className="w-16">ผู้ยืม:</span>
-                      <span className="text-blue-600 font-black">{item.studentId}</span>
+                  <div className="space-y-2">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">ผู้ยืม (Student ID)</span>
+                      <span className="text-blue-600 font-black text-lg">{item.studentId}</span>
                     </div>
-                    <div className="flex text-xs text-slate-400 font-bold uppercase tracking-tight">
-                      <span className="w-16">สาขา:</span>
-                      <span className="text-slate-600 truncate">{item.major}</span>
-                    </div>
-                    <div className="flex text-xs text-slate-400 font-bold uppercase tracking-tight">
-                      <span className="w-16">ห้อง:</span>
-                      <span className="text-slate-600">{item.classroom}</span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">ห้อง / สาขา</span>
+                      <span className="text-slate-600 text-xs font-bold truncate">{item.classroom} | {item.major}</span>
                     </div>
                   </div>
                 </div>
-
-                <button 
-                  onClick={() => setIsConfirmingReturn(item)}
-                  className="mt-4 bg-[#f15a24] hover:bg-[#d44a1b] text-white text-sm font-black py-2.5 px-8 rounded-2xl shadow-lg shadow-orange-500/20 transform hover:scale-105 active:scale-95 transition-all w-full md:w-fit"
-                >
-                  คืนบอร์ดเกม
-                </button>
               </div>
+
+              <button 
+                onClick={() => { setReturnError(null); setIsConfirmingReturn(item); }}
+                className="mt-4 bg-[#f15a24] hover:bg-[#d44a1b] text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-orange-500/20 transform active:scale-95 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2z"></path></svg>
+                คืนบอร์ดเกม
+              </button>
             </div>
           ))}
         </div>
@@ -206,10 +193,9 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
 
       {isConfirmingReturn && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl animate-scale-in border-4 border-blue-500">
-            <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันรหัสผู้ยืม</h3>
-            <p className="text-slate-500 text-sm mb-6 font-bold text-center">กรุณากรอกรหัสนักศึกษา 5 หลักให้ถูกต้องเพื่อคืนเกม</p>
-            
+          <div className={`bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl border-4 ${returnError ? 'border-red-500 animate-shake' : 'border-blue-500'} transition-colors animate-scale-in`}>
+            <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการคืน</h3>
+            <p className="text-slate-500 text-sm mb-6 font-bold text-center">กรุณากรอกรหัสนักศึกษา 5 หลักของผู้ยืมเพื่อยืนยัน</p>
             <input
               autoFocus
               type="text"
@@ -220,35 +206,45 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
                 const val = e.target.value;
                 if (/^\d*$/.test(val)) {
                   setStudentIdInput(val);
+                  if (returnError) setReturnError(null);
                 }
               }}
-              onKeyDown={(e) => e.key === 'Enter' && handleReturn()}
-              className={`w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 outline-none font-bold text-lg mb-2 text-center transition-all ${
-                studentIdInput.length > 0 && studentIdInput.length !== 5 ? 'ring-2 ring-red-400' : 'focus:ring-blue-500'
-              }`}
+              onKeyDown={(e) => e.key === 'Enter' && handleManualReturn()}
+              className={`w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 outline-none font-black text-center text-xl mb-6 shadow-inner transition-all ${returnError ? 'ring-red-500 ring-2 bg-red-50' : 'focus:ring-blue-500'}`}
             />
-            <p className="text-[10px] text-center mb-6 font-black uppercase text-slate-400">
-              {studentIdInput.length !== 5 ? '❌ ต้องครบ 5 หลัก' : '✅ รูปแบบถูกต้อง'}
-            </p>
-
             <div className="flex gap-4">
-              <button 
-                onClick={() => {setIsConfirmingReturn(null); setStudentIdInput('');}}
-                className="flex-1 py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors"
-              >
-                ยกเลิก
-              </button>
+              <button onClick={() => {setIsConfirmingReturn(null); setStudentIdInput(''); setReturnError(null);}} className="flex-1 py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors">ยกเลิก</button>
               <button 
                 disabled={isSubmitting || studentIdInput.length !== 5}
-                onClick={handleReturn}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:shadow-none"
+                onClick={handleManualReturn}
+                className="flex-1 bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-700 disabled:bg-slate-300 disabled:shadow-none"
               >
-                {isSubmitting ? <span className="animate-spin block h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> : 'ยืนยัน'}
+                {isSubmitting ? <span className="animate-spin block h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span> : 'ยืนยัน'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Tailwind Style Extension for short animations */}
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-8px); }
+          75% { transform: translateX(8px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes bounce-short {
+          0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
+          40% {transform: translateY(-10px) translateX(-50%);}
+          60% {transform: translateY(-5px) translateX(-50%);}
+        }
+        .animate-bounce-short {
+          animation: bounce-short 1s ease infinite;
+        }
+      `}</style>
     </div>
   );
 };
