@@ -1,19 +1,21 @@
 
 /**
  * --- FINAL GOOGLE APPS SCRIPT ---
- * รวมระบบยืม-คืน, เช็คสถานะ, และดึงรายการที่ถูกยืมทั้งหมด
+ * รวมระบบยืม-คืน, เช็คสถานะ, และดึงรายการประวัติทั้งหมด
  */
 
 function doGet(e) {
   try {
     const action = e.parameter.action;
     
-    // ดึงข้อมูลรายการที่ถูกยืมทั้งหมด (ใช้ GET จะเสถียรกว่าสำหรับการอ่านข้อมูล)
     if (action === "get_borrowed") {
       return getAllBorrowed();
     }
     
-    // เช็คสถานะรายเกม (โค้ดเดิมของคุณ)
+    if (action === "get_all_transactions") {
+      return getAllTransactions();
+    }
+    
     if (action === "check") {
       return checkSingleGame(e.parameter.Board_Game);
     }
@@ -37,8 +39,6 @@ function doPost(e) {
       return handleBorrow(data);
     } else if (data.action === "return") {
       return handleReturn(data);
-    } else if (data.action === "get_borrowed") {
-      return getAllBorrowed();
     } else {
       throw new Error("Action ไม่ถูกต้อง");
     }
@@ -49,6 +49,30 @@ function doPost(e) {
   }
 }
 
+function getAllTransactions() {
+  const ss = SpreadsheetApp.getActive();
+  const borrowSheet = ss.getSheetByName("BorrowData");
+  if (!borrowSheet) return output({ status: "error", message: "ไม่พบชีต BorrowData" });
+
+  const values = borrowSheet.getDataRange().getValues();
+  const transactions = [];
+  
+  // ข้ามหัวตาราง (i=1) และอ่านจากล่างขึ้นบนเพื่อให้เห็นรายการล่าสุดก่อน
+  for (let i = values.length - 1; i >= 1; i--) {
+    transactions.push({
+      playerCount: values[i][0],
+      date: values[i][1],
+      classroom: values[i][2],
+      studentId: values[i][3],
+      major: values[i][4],
+      gameName: values[i][5],
+      borrowTime: values[i][8],
+      returnTime: values[i][9] || null
+    });
+  }
+  return output({ status: "success", items: transactions });
+}
+
 function getAllBorrowed() {
   const ss = SpreadsheetApp.getActive();
   const statusSheet = ss.getSheetByName("BoardGameStatus");
@@ -57,7 +81,6 @@ function getAllBorrowed() {
   const values = statusSheet.getDataRange().getValues();
   const items = [];
   
-  // เริ่มที่ i = 1 เพื่อข้ามหัวตาราง
   for (let i = 1; i < values.length; i++) {
     const gameName = values[i][0];
     const status = String(values[i][1]);

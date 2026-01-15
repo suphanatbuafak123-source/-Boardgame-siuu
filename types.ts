@@ -15,7 +15,8 @@ export enum View {
   BorrowSuccess = 'BORROW_SUCCESS',
   ManageGames = 'MANAGE_GAMES',
   Search = 'SEARCH',
-  ReturnList = 'RETURN_LIST', // หน้าประวัติการยืมใหม่
+  ReturnList = 'RETURN_LIST',
+  TransactionHistory = 'TRANSACTION_HISTORY', // หน้าประวัติทั้งหมด
 }
 
 export interface BorrowerInfo {

@@ -2,7 +2,7 @@
 import { BorrowerInfo } from '../types';
 
 // สำคัญ: ต้องเป็น URL จากการ Deploy ล่าสุด (Deploy -> New Deployment -> Anyone)
-const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwX10-2EbRU-OcoWWI4qNw6qN6JOp0eK3m52DO2BS_3KZfML2BjY4e2dPh6gOesgpWrpQ/exec';
+const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyQ0sOdyz5G1pHkxpiSDOxxYk2r_uRTlFn2q14Ra-3BGBBIrtigvjVfKhnqAF2nN-9hkg/exec';
 
 interface ApiResponse {
   status: 'success' | 'not_found' | 'error' | 'blocked' | 'borrowed' | 'available';
@@ -17,12 +17,10 @@ interface ServiceResponse {
 }
 
 /**
- * ดึงข้อมูลผู้ยืมทั้งหมด
- * ปรับเป็น GET เพื่อให้ Google Apps Script ทำงานได้เสถียรที่สุดในการอ่านข้อมูล
+ * ดึงข้อมูลผู้ยืมทั้งหมด (เฉพาะที่กำลังยืม)
  */
 export const fetchBorrowedItems = async (): Promise<ServiceResponse> => {
   try {
-    // การใช้ GET พร้อม Query Parameter จะช่วยให้ข้ามปัญหา CORS และ Redirect ได้ดีขึ้น
     const response = await fetch(`${GOOGLE_SHEET_API_URL}?action=get_borrowed`, {
       method: 'GET',
       mode: 'cors',
@@ -39,8 +37,31 @@ export const fetchBorrowedItems = async (): Promise<ServiceResponse> => {
     console.error('❌ Error fetching from Google Sheet:', error);
     return { 
       success: false, 
-      message: 'ไม่สามารถดึงข้อมูลได้ กรุณาตรวจสอบว่าได้ตั้งค่า Deployment เป็น Anyone หรือยัง' 
+      message: 'ไม่สามารถดึงข้อมูลได้' 
     };
+  }
+};
+
+/**
+ * ดึงประวัติการทำรายการทั้งหมด (Checklist)
+ */
+export const fetchAllTransactions = async (): Promise<ServiceResponse> => {
+  try {
+    const response = await fetch(`${GOOGLE_SHEET_API_URL}?action=get_all_transactions`, {
+      method: 'GET',
+      mode: 'cors',
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
+    const result: ApiResponse = await response.json();
+    if (result.status === 'success') {
+      return { success: true, data: result.items || [] };
+    }
+    return { success: false, message: result.message || 'ไม่พบประวัติการทำรายการ' };
+  } catch (error) {
+    console.error('❌ Error fetching transactions:', error);
+    return { success: false, message: 'ไม่สามารถดึงประวัติได้' };
   }
 };
 

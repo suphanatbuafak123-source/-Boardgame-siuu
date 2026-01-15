@@ -9,6 +9,7 @@ import BorrowForm from './components/BorrowForm';
 import ManageGamesView from './components/ManageGamesView';
 import SearchView from './components/SearchView';
 import ReturnHistoryView from './components/ReturnHistoryView';
+import TransactionHistoryView from './components/TransactionHistoryView';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.List);
@@ -111,6 +112,8 @@ const App: React.FC = () => {
         );
       case View.ReturnList:
         return <ReturnHistoryView boardGames={boardGames} onBack={handleBackToList} />;
+      case View.TransactionHistory:
+        return <TransactionHistoryView onBack={handleBackToList} />;
       case View.BorrowForm:
         return <BorrowForm selectedGames={selectedGames} onSuccess={handleBorrowSuccess} onBack={handleBackToList} />;
       case View.BorrowSuccess:
@@ -159,6 +162,7 @@ const App: React.FC = () => {
         onReturnClick={() => setView(View.ReturnList)} 
         onManageClick={() => setView(View.ManageGames)}
         onSearchClick={() => setView(View.Search)}
+        onHistoryClick={() => setView(View.TransactionHistory)}
       />
       <main className="container mx-auto px-4 py-8">
         {renderContent()}
