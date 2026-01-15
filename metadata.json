@@ -1,0 +1,5 @@
+{
+  "name": "Board Game wanich",
+  "description": "A web application for borrowing and returning board games, with data integration to Google Sheets. Users can select games, fill in their information to borrow, and process returns using their student ID.",
+  "requestFramePermissions": []
+}
