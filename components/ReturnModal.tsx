@@ -30,6 +30,12 @@ const ReturnModal: React.FC<ReturnModalProps> = ({ boardGames, onClose }) => {
       setError('กรุณากรอกรหัสนักศึกษาและเลือกเกมที่ต้องการคืน');
       return;
     }
+    
+    if (studentId.length !== 5) {
+      setError('รหัสนักศึกษาต้องมี 5 หลักเท่านั้น');
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
 
@@ -82,21 +88,32 @@ const ReturnModal: React.FC<ReturnModalProps> = ({ boardGames, onClose }) => {
           <div className="space-y-4">
             {/* Student ID Input */}
             <div>
-              <label htmlFor="returnStudentId" className="block text-sm font-bold text-slate-700 mb-2">เลขประจำตัวนักศึกษา</label>
+              <label htmlFor="returnStudentId" className="block text-sm font-bold text-slate-700 mb-2">เลขประจำตัวนักศึกษา (5 หลัก)</label>
               <div className="relative">
                 <input
                   type="text"
                   id="returnStudentId"
+                  maxLength={5}
                   value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-800 font-semibold"
-                  placeholder="กรอกรหัสนักศึกษา 5 หลัก"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^\d*$/.test(val)) {
+                      setStudentId(val);
+                    }
+                  }}
+                  className={`w-full pl-12 pr-4 py-3 bg-slate-50 border rounded-2xl focus:ring-2 transition-all outline-none text-slate-800 font-semibold ${
+                    studentId.length > 0 && studentId.length !== 5 ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
+                  placeholder="กรอกรหัส 5 หลัก"
                   required
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
               </div>
+              <p className={`mt-1 text-[10px] font-bold ${studentId.length > 0 && studentId.length !== 5 ? 'text-red-500' : 'text-slate-400'}`}>
+                {studentId.length}/5 หลัก
+              </p>
             </div>
 
             {/* Game Selector Trigger */}
@@ -128,7 +145,7 @@ const ReturnModal: React.FC<ReturnModalProps> = ({ boardGames, onClose }) => {
           <div className="pt-4">
             <button
               type="submit"
-              disabled={isSubmitting || selectedGames.length === 0}
+              disabled={isSubmitting || selectedGames.length === 0 || studentId.length !== 5}
               className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-green-500/30 disabled:bg-slate-200 disabled:shadow-none disabled:text-slate-400 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
             >
               {isSubmitting ? (

@@ -31,7 +31,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
     setError(null);
     try {
       const result = await fetchBorrowedItems();
-      // Fix: Removed non-existent 'status' property check and simplified success handling
       if (result.success) {
         setBorrowedItems(result.data || []);
       } else {
@@ -54,7 +53,13 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
   const handleReturn = async () => {
     if (!isConfirmingReturn) return;
     
-    // ตรวจสอบความถูกต้องเบื้องต้น (Client-side)
+    // ตรวจสอบความยาวเบื้องต้น (ต้อง 5 หลัก)
+    if (studentIdInput.length !== 5) {
+      alert('รหัสนักศึกษาต้องมี 5 หลักเท่านั้น');
+      return;
+    }
+
+    // ตรวจสอบความถูกต้องกับข้อมูลในระบบ
     if (String(studentIdInput).trim() !== String(isConfirmingReturn.studentId).trim()) {
       alert('รหัสนักศึกษาไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
       return;
@@ -67,7 +72,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         setShowSuccess(true);
         setIsConfirmingReturn(null);
         setStudentIdInput('');
-        // รีโหลดข้อมูลหลังคืนสำเร็จแบบเงียบๆ
         loadData();
       } else {
         alert(result.message || 'ไม่สามารถทำรายการได้');
@@ -89,7 +93,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
     return game?.category || "บอร์ดเกม";
   };
 
-  // แสดงหน้าจอสำเร็จ
   if (showSuccess) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-12 bg-white shadow-2xl rounded-[40px] max-w-lg mx-auto mt-10 animate-scale-in">
@@ -201,22 +204,32 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         </div>
       )}
 
-      {/* Modal ยืนยันการคืน */}
       {isConfirmingReturn && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl animate-scale-in">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl animate-scale-in border-4 border-blue-500">
             <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันรหัสผู้ยืม</h3>
-            <p className="text-slate-500 text-sm mb-6">กรุณากรอกรหัสนักศึกษา <span className="font-black text-slate-800">{isConfirmingReturn.studentId}</span> เพื่อคืนเกม <span className="font-bold text-blue-600">{isConfirmingReturn.gameName}</span></p>
+            <p className="text-slate-500 text-sm mb-6 font-bold text-center">กรุณากรอกรหัสนักศึกษา 5 หลักให้ถูกต้องเพื่อคืนเกม</p>
             
             <input
               autoFocus
               type="text"
-              placeholder="กรอกรหัสนักศึกษา"
+              maxLength={5}
+              placeholder="กรอกรหัส 5 หลัก"
               value={studentIdInput}
-              onChange={(e) => setStudentIdInput(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (/^\d*$/.test(val)) {
+                  setStudentIdInput(val);
+                }
+              }}
               onKeyDown={(e) => e.key === 'Enter' && handleReturn()}
-              className="w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg mb-6 text-center"
+              className={`w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 outline-none font-bold text-lg mb-2 text-center transition-all ${
+                studentIdInput.length > 0 && studentIdInput.length !== 5 ? 'ring-2 ring-red-400' : 'focus:ring-blue-500'
+              }`}
             />
+            <p className="text-[10px] text-center mb-6 font-black uppercase text-slate-400">
+              {studentIdInput.length !== 5 ? '❌ ต้องครบ 5 หลัก' : '✅ รูปแบบถูกต้อง'}
+            </p>
 
             <div className="flex gap-4">
               <button 
@@ -226,11 +239,11 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
                 ยกเลิก
               </button>
               <button 
-                disabled={isSubmitting || !studentIdInput}
+                disabled={isSubmitting || studentIdInput.length !== 5}
                 onClick={handleReturn}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:shadow-none"
               >
-                {isSubmitting ? <span className="animate-spin block h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> : 'ยืนยันการคืน'}
+                {isSubmitting ? <span className="animate-spin block h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> : 'ยืนยัน'}
               </button>
             </div>
           </div>
