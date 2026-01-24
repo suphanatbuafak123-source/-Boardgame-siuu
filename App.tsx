@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { BoardGame, View } from './types';
 import { INITIAL_BOARD_GAMES } from './data/boardGames';
 import Header from './components/Header';
@@ -10,10 +10,10 @@ import ManageGamesView from './components/ManageGamesView';
 import SearchView from './components/SearchView';
 import ReturnHistoryView from './components/ReturnHistoryView';
 import TransactionHistoryView from './components/TransactionHistoryView';
+import { fetchBorrowedItems } from './services/googleSheetService';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.List);
-  
   const [boardGames, setBoardGames] = useState<BoardGame[]>(() => {
     try {
       const savedGames = localStorage.getItem('boardGames');
@@ -33,10 +33,66 @@ const App: React.FC = () => {
   });
 
   const [isConfirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  
+  // State สำหรับการสแกนด่วน (Global Scan)
+  const [quickReturnItem, setQuickReturnItem] = useState<any>(null);
+  const scanBuffer = useRef('');
 
   useEffect(() => {
     localStorage.setItem('boardGames', JSON.stringify(boardGames));
   }, [boardGames]);
+
+  // ระบบดักจับการสแกนจากเครื่องสแกนแยก (Global Listener)
+  useEffect(() => {
+    const handleGlobalKeyDown = async (e: KeyboardEvent) => {
+      // ถ้ากำลังพิมพ์อยู่ใน Input ใดๆ ให้ข้ามไป ไม่ต้องดักจับ (ป้องกันพิมพ์งานอยู่แล้วระบบเด้ง)
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        const scannedText = scanBuffer.current.trim();
+        if (scannedText) {
+          processGlobalScan(scannedText);
+        }
+        scanBuffer.current = '';
+      } else {
+        // สะสมตัวอักษรที่สแกนมา (ยกเว้น Shift/Ctrl ฯลฯ)
+        if (e.key.length === 1) {
+          scanBuffer.current += e.key;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [boardGames]); // Re-bind เมื่อข้อมูลเกมเปลี่ยน
+
+  const processGlobalScan = async (gameName: string) => {
+    // 1. ตรวจสอบก่อนว่าชื่อที่สแกนมา มีอยู่ในระบบบอร์ดเกมของเราไหม
+    const foundGame = boardGames.find(g => g.name.toLowerCase() === gameName.toLowerCase());
+    if (!foundGame) return;
+
+    // 2. ดึงข้อมูลว่าใครยืมเกมนี้อยู่จาก Google Sheet
+    try {
+      const result = await fetchBorrowedItems();
+      if (result.success && result.data) {
+        const borrowedMatch = result.data.find((item: any) => 
+          item.gameName.toLowerCase() === gameName.toLowerCase()
+        );
+
+        if (borrowedMatch) {
+          // ถ้ามีคนยืมอยู่ ให้เปิด Modal ยืนยันการคืนทันที
+          setQuickReturnItem(borrowedMatch);
+        } else {
+          alert(`เกม "${gameName}" ไม่ได้ถูกยืมอยู่ในขณะนี้ (พร้อมให้ยืม)`);
+        }
+      }
+    } catch (err) {
+      console.error("Scan error:", err);
+    }
+  };
 
   const selectedGames = useMemo(() => boardGames.filter(game => game.selected), [boardGames]);
 
@@ -174,6 +230,17 @@ const App: React.FC = () => {
           onClose={() => setConfirmationModalOpen(false)}
           onConfirm={handleProceedToBorrow}
         />
+      )}
+
+      {/* Quick Return Confirmation Modal (แสดงเมื่อมีการสแกน QR จากหน้าใดๆ) */}
+      {quickReturnItem && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[999] flex items-center justify-center p-4 animate-fade-in">
+           <ReturnHistoryView 
+            boardGames={boardGames} 
+            onBack={() => setQuickReturnItem(null)} 
+            initialItem={quickReturnItem} // เพิ่ม Prop นี้เพื่อเจาะจงเกมที่สแกนมา
+          />
+        </div>
       )}
     </div>
   );

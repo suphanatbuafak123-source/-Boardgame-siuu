@@ -43,13 +43,18 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
     loadData();
   }, [loadData]);
 
+  // แก้ไขฟังก์ชันจัดการวันที่ให้เป็นปี ค.ศ. (Gregorian)
   const formatDate = (dateStr: any) => {
     if (!dateStr) return "-";
     try {
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return String(dateStr).split('T')[0];
-      // ใช้ locale 'en-GB' หรือ 'th-TH-u-ca-gregory' เพื่อบังคับแสดงเป็นปี ค.ศ.
-      return d.toLocaleDateString('en-GB', { 
+      if (isNaN(d.getTime())) {
+        // กรณีดึงมาเป็น string ที่ parse ไม่ได้ ให้พยายามตัดเฉพาะส่วนวันที่มาแสดง
+        return String(dateStr).split(' ')[0] || String(dateStr);
+      }
+      
+      // ใช้ 'th-TH-u-ca-gregory' เพื่อให้แสดงเดือนไทยแต่ปีเป็น ค.ศ. (เช่น 2024)
+      return d.toLocaleDateString('th-TH-u-ca-gregory', { 
         year: 'numeric', 
         month: 'short', 
         day: 'numeric' 
