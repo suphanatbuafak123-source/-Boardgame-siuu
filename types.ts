@@ -7,6 +7,7 @@ export interface BoardGame {
   selected: boolean;
   category: string;
   isPopular: boolean;
+  barcode?: string; // เพิ่มฟิลด์สำหรับเก็บรหัสตัวเลขที่ใช้สแกน
 }
 
 export enum View {
@@ -16,7 +17,7 @@ export enum View {
   ManageGames = 'MANAGE_GAMES',
   Search = 'SEARCH',
   ReturnList = 'RETURN_LIST',
-  TransactionHistory = 'TRANSACTION_HISTORY', // หน้าประวัติทั้งหมด
+  TransactionHistory = 'TRANSACTION_HISTORY',
 }
 
 export interface BorrowerInfo {

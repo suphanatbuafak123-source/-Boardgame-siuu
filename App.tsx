@@ -12,23 +12,18 @@ import ReturnHistoryView from './components/ReturnHistoryView';
 import TransactionHistoryView from './components/TransactionHistoryView';
 import { fetchBorrowedItems, recordReturn } from './services/googleSheetService';
 
-// แผนผังคีย์บอร์ดสำหรับการสลับภาษาอัตโนมัติ
 const EN_CHARS = "qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>? ";
 const TH_CHARS = "ๆไำพะัีรนยบลฟหกดเ้่าสวงผปแอิืทมใฝ๐\"ฎฑธํ๊ณฯญฐฅฤฆฏโ้็๋ษศซ.()ฉฮฺ์?ฒฬฬ ";
 
 const smartTranslate = (text: string) => {
-  // 1. แปลงจาก ไทย -> อังกฤษ
   const toEng = text.split('').map(char => {
     const index = TH_CHARS.indexOf(char);
     return index !== -1 ? EN_CHARS[index] : char;
   }).join('');
-
-  // 2. แปลงจาก อังกฤษ -> ไทย
   const toThai = text.split('').map(char => {
     const index = EN_CHARS.indexOf(char);
     return index !== -1 ? TH_CHARS[index] : char;
   }).join('');
-
   return { toEng, toThai };
 };
 
@@ -74,15 +69,21 @@ const App: React.FC = () => {
     setScanResult(null);
 
     try {
-      const { toEng, toThai } = smartTranslate(scannedText);
-      const foundGame = boardGames.find(g => 
-        g.name.toLowerCase() === scannedText.toLowerCase() ||
-        g.name.toLowerCase() === toEng.toLowerCase() ||
-        g.name.toLowerCase() === toThai.toLowerCase()
-      );
+      // 1. ค้นหาด้วยรหัส Barcode ก่อน (ลำดับความสำคัญสูงสุด)
+      let foundGame = boardGames.find(g => g.barcode === scannedText);
+
+      // 2. ถ้าไม่เจอ Barcode ให้ค้นหาด้วยชื่อ (Smart Search)
+      if (!foundGame) {
+        const { toEng, toThai } = smartTranslate(scannedText);
+        foundGame = boardGames.find(g => 
+          g.name.toLowerCase() === scannedText.toLowerCase() ||
+          g.name.toLowerCase() === toEng.toLowerCase() ||
+          g.name.toLowerCase() === toThai.toLowerCase()
+        );
+      }
 
       if (!foundGame) {
-        setScanResult({ status: 'error', message: `ไม่พบเกม "${scannedText}" ในระบบ` });
+        setScanResult({ status: 'error', message: `ไม่พบเกมหรือรหัส "${scannedText}" ในระบบ` });
         setIsProcessingScan(false);
         setTimeout(() => setScanResult(null), 4000);
         return;
@@ -91,7 +92,7 @@ const App: React.FC = () => {
       const result = await fetchBorrowedItems();
       if (result.success && result.data) {
         const borrowedMatch = result.data.find((item: any) => 
-          item.gameName.toLowerCase() === foundGame.name.toLowerCase()
+          item.gameName.toLowerCase() === foundGame!.name.toLowerCase()
         );
 
         if (borrowedMatch) {
@@ -99,7 +100,7 @@ const App: React.FC = () => {
           if (returnRes.success) {
             setScanResult({
               status: 'success',
-              message: `คืนสำเร็จ: ${borrowedMatch.gameName}\nผู้ยืม: ${borrowedMatch.studentId}`
+              message: `คืนสำเร็จ: ${borrowedMatch.gameName}\n(สแกนด้วยรหัส: ${scannedText})`
             });
             setRefreshKey(prev => prev + 1);
           } else {
@@ -118,19 +119,12 @@ const App: React.FC = () => {
   };
 
   const selectedGames = useMemo(() => boardGames.filter(game => game.selected), [boardGames]);
-  
   const handleToggleSelect = (id: number) => setBoardGames(prev => prev.map(g => g.id === id ? { ...g, selected: !g.selected } : g));
-  
   const handleConfirmSelection = () => selectedGames.length > 0 ? setConfirmationModalOpen(true) : alert('กรุณาเลือกเกม');
-  
   const handleProceedToBorrow = () => { setView(View.BorrowForm); setConfirmationModalOpen(false); };
-  
-  const handleBorrowSuccess = () => {
-    setView(View.BorrowSuccess);
-    setBoardGames(prev => prev.map(g => ({ ...g, selected: false })));
-  };
+  const handleBorrowSuccess = () => { setView(View.BorrowSuccess); setBoardGames(prev => prev.map(g => ({ ...g, selected: false }))); };
 
-  const handleAddGame = (newGameData: { name: string; description: string; imageUrl: string; category: string; isPopular: boolean }) => {
+  const handleAddGame = (newGameData: any) => {
     const newGame: BoardGame = {
       ...newGameData,
       id: boardGames.length > 0 ? Math.max(...boardGames.map(g => g.id)) + 1 : 1,
@@ -140,9 +134,7 @@ const App: React.FC = () => {
   };
 
   const handleUpdateGame = (updatedGame: BoardGame) => {
-    setBoardGames(prevGames =>
-      prevGames.map(game => (game.id === updatedGame.id ? updatedGame : game))
-    );
+    setBoardGames(prevGames => prevGames.map(game => (game.id === updatedGame.id ? updatedGame : game)));
   };
 
   const handleDeleteGames = (ids: number[]) => {
@@ -150,7 +142,7 @@ const App: React.FC = () => {
   };
 
   const handleResetData = () => {
-    if (window.confirm('คุณต้องการรีเซ็ตข้อมูลบอร์ดเกมทั้งหมดให้กลับเป็นค่าเริ่มต้น?')) {
+    if (window.confirm('คุณต้องการรีเซ็ตข้อมูลบอร์ดเกมทั้งหมด?')) {
       setBoardGames(INITIAL_BOARD_GAMES);
       localStorage.removeItem('boardGames');
     }
@@ -165,22 +157,11 @@ const App: React.FC = () => {
       case View.ReturnList: return <ReturnHistoryView boardGames={boardGames} onBack={handleBackToList} key={`ret-${refreshKey}`} />;
       case View.TransactionHistory: return <TransactionHistoryView onBack={handleBackToList} key={`his-${refreshKey}`} />;
       case View.BorrowForm: return <BorrowForm selectedGames={selectedGames} onSuccess={handleBorrowSuccess} onBack={handleBackToList} />;
-      case View.ManageGames:
-        return (
-          <ManageGamesView 
-            boardGames={boardGames} 
-            onAddGame={handleAddGame} 
-            onUpdateGame={handleUpdateGame}
-            onDeleteGames={handleDeleteGames}
-            onResetData={handleResetData}
-            onBack={handleBackToList} 
-          />
-        );
+      case View.ManageGames: return <ManageGamesView boardGames={boardGames} onAddGame={handleAddGame} onUpdateGame={handleUpdateGame} onDeleteGames={handleDeleteGames} onResetData={handleResetData} onBack={handleBackToList} />;
       case View.BorrowSuccess: return (
         <div className="flex flex-col items-center justify-center text-center p-12 bg-white shadow-2xl rounded-[40px] max-w-lg mx-auto mt-20 animate-scale-in border-t-8 border-green-500">
           <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8"><svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg></div>
           <h2 className="text-4xl font-black text-slate-800 mb-3">ยืมสำเร็จ!</h2>
-          <p className="text-slate-500 mb-10 text-lg">บันทึกข้อมูลการยืมเรียบร้อยแล้ว</p>
           <button onClick={handleBackToList} className="w-full bg-blue-600 text-white font-black py-5 px-8 rounded-2xl hover:bg-blue-700 transition shadow-xl">กลับหน้าหลัก</button>
         </div>
       );
@@ -192,33 +173,23 @@ const App: React.FC = () => {
     <div className="bg-[#f8fafc] min-h-screen font-sans text-slate-800 pb-20">
       <Header onReturnClick={() => setView(View.ReturnList)} onManageClick={() => setView(View.ManageGames)} onSearchClick={() => setView(View.Search)} onHistoryClick={() => setView(View.TransactionHistory)} />
       <main className="container mx-auto px-4 py-8">{renderContent()}</main>
-
       {isConfirmationModalOpen && <ConfirmationModal selectedGames={selectedGames} onClose={() => setConfirmationModalOpen(false)} onConfirm={handleProceedToBorrow} />}
-
       {isProcessingScan && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center">
           <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl">
             <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-800 font-black text-xl">ระบบกำลังคืนบอร์ดเกมให้อัตโนมัติ...</p>
+            <p className="text-slate-800 font-black text-xl">กำลังประมวลผลด้วยรหัสสแกน...</p>
           </div>
         </div>
       )}
-
       {scanResult && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[1001] w-[90%] max-w-md animate-bounce-short">
           <div className={`${scanResult.status === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white px-8 py-6 rounded-3xl shadow-2xl border-4 border-white/20 flex flex-col items-center text-center`}>
-            <div className="mb-2">
-              {scanResult.status === 'success' ? 
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> :
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-              }
-            </div>
             <p className="font-black text-xl whitespace-pre-line">{scanResult.message}</p>
-            <button onClick={() => setScanResult(null)} className="mt-4 underline text-sm font-bold opacity-80 hover:opacity-100">ปิดการแจ้งเตือน</button>
+            <button onClick={() => setScanResult(null)} className="mt-4 underline text-sm font-bold opacity-80">ปิด</button>
           </div>
         </div>
       )}
-
       <style>{`
         @keyframes bounce-short { 0%, 100% {transform: translateY(0) translateX(-50%);} 50% {transform: translateY(-10px) translateX(-50%);} }
         .animate-bounce-short { animation: bounce-short 0.6s ease-in-out; }
