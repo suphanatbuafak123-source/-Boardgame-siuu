@@ -10,10 +10,11 @@ import ManageGamesView from './components/ManageGamesView';
 import SearchView from './components/SearchView';
 import ReturnHistoryView from './components/ReturnHistoryView';
 import TransactionHistoryView from './components/TransactionHistoryView';
-import { fetchBorrowedItems } from './services/googleSheetService';
+import { fetchBorrowedItems, recordReturn } from './services/googleSheetService';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.List);
+  const [refreshKey, setRefreshKey] = useState(0); // สำหรับบังคับ Refresh ข้อมูลในหน้าลูก
   const [boardGames, setBoardGames] = useState<BoardGame[]>(() => {
     try {
       const savedGames = localStorage.getItem('boardGames');
@@ -34,22 +35,21 @@ const App: React.FC = () => {
 
   const [isConfirmationModalOpen, setConfirmationModalOpen] = useState(false);
   
-  // State สำหรับการสแกนด่วน (Global Scan)
-  const [quickReturnItem, setQuickReturnItem] = useState<any>(null);
+  // State สำหรับการจัดการสแกนอัตโนมัติ
+  const [isProcessingScan, setIsProcessingScan] = useState(false);
+  const [scanResult, setScanResult] = useState<{status: 'success' | 'error', message: string} | null>(null);
   const scanBuffer = useRef('');
 
   useEffect(() => {
     localStorage.setItem('boardGames', JSON.stringify(boardGames));
   }, [boardGames]);
 
-  // ระบบดักจับการสแกนจากเครื่องสแกนแยก (Global Listener)
+  // ระบบดักจับการสแกน Global (Auto-Return)
   useEffect(() => {
     const handleGlobalKeyDown = async (e: KeyboardEvent) => {
-      // ถ้ากำลังพิมพ์อยู่ใน Input ใดๆ ให้ข้ามไป ไม่ต้องดักจับ (ป้องกันพิมพ์งานอยู่แล้วระบบเด้ง)
+      // ถ้ากำลังพิมพ์อยู่ในช่อง Input หรือ Textarea ให้ข้ามไป (เพื่อให้ใช้ Search ได้ปกติ)
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-        return;
-      }
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
       if (e.key === 'Enter') {
         const scannedText = scanBuffer.current.trim();
@@ -58,7 +58,6 @@ const App: React.FC = () => {
         }
         scanBuffer.current = '';
       } else {
-        // สะสมตัวอักษรที่สแกนมา (ยกเว้น Shift/Ctrl ฯลฯ)
         if (e.key.length === 1) {
           scanBuffer.current += e.key;
         }
@@ -67,15 +66,22 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [boardGames]); // Re-bind เมื่อข้อมูลเกมเปลี่ยน
+  }, [boardGames, view]);
 
   const processGlobalScan = async (gameName: string) => {
-    // 1. ตรวจสอบก่อนว่าชื่อที่สแกนมา มีอยู่ในระบบบอร์ดเกมของเราไหม
+    // 1. ค้นหาเกมในฐานข้อมูลท้องถิ่นก่อน
     const foundGame = boardGames.find(g => g.name.toLowerCase() === gameName.toLowerCase());
-    if (!foundGame) return;
+    if (!foundGame) {
+      setScanResult({ status: 'error', message: `ไม่พบเกมชื่อ "${gameName}" ในระบบ` });
+      setTimeout(() => setScanResult(null), 4000);
+      return;
+    }
 
-    // 2. ดึงข้อมูลว่าใครยืมเกมนี้อยู่จาก Google Sheet
+    setIsProcessingScan(true);
+    setScanResult(null);
+
     try {
+      // 2. ตรวจสอบว่าใครยืมเกมนี้อยู่จาก Google Sheet
       const result = await fetchBorrowedItems();
       if (result.success && result.data) {
         const borrowedMatch = result.data.find((item: any) => 
@@ -83,14 +89,28 @@ const App: React.FC = () => {
         );
 
         if (borrowedMatch) {
-          // ถ้ามีคนยืมอยู่ ให้เปิด Modal ยืนยันการคืนทันที
-          setQuickReturnItem(borrowedMatch);
+          // 3. ทำการคืนอัตโนมัติทันทีโดยใช้ Student ID จากข้อมูลการยืม
+          const returnRes = await recordReturn(borrowedMatch.studentId, borrowedMatch.gameName);
+          if (returnRes.success) {
+            setScanResult({
+              status: 'success',
+              message: `คืนสำเร็จ: ${borrowedMatch.gameName} (รหัสผู้ยืม: ${borrowedMatch.studentId})`
+            });
+            // หากอยู่ที่หน้า ReturnList หรือ History ให้บังคับรีเฟรชข้อมูล
+            setRefreshKey(prev => prev + 1);
+          } else {
+            setScanResult({ status: 'error', message: returnRes.message || 'ไม่สามารถทำรายการคืนได้' });
+          }
         } else {
-          alert(`เกม "${gameName}" ไม่ได้ถูกยืมอยู่ในขณะนี้ (พร้อมให้ยืม)`);
+          setScanResult({ status: 'error', message: `เกม "${foundGame.name}" พร้อมให้ยืม (ไม่มีผู้ยืมค้างอยู่)` });
         }
       }
     } catch (err) {
-      console.error("Scan error:", err);
+      setScanResult({ status: 'error', message: 'การเชื่อมต่อขัดข้อง กรุณาลองใหม่อีกครั้ง' });
+    } finally {
+      setIsProcessingScan(false);
+      // ซ่อนข้อความแจ้งเตือนอัตโนมัติ
+      setTimeout(() => setScanResult(null), 5000);
     }
   };
 
@@ -167,9 +187,9 @@ const App: React.FC = () => {
           />
         );
       case View.ReturnList:
-        return <ReturnHistoryView boardGames={boardGames} onBack={handleBackToList} />;
+        return <ReturnHistoryView boardGames={boardGames} onBack={handleBackToList} key={`return-${refreshKey}`} />;
       case View.TransactionHistory:
-        return <TransactionHistoryView onBack={handleBackToList} />;
+        return <TransactionHistoryView onBack={handleBackToList} key={`history-${refreshKey}`} />;
       case View.BorrowForm:
         return <BorrowForm selectedGames={selectedGames} onSuccess={handleBorrowSuccess} onBack={handleBackToList} />;
       case View.BorrowSuccess:
@@ -232,16 +252,44 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Quick Return Confirmation Modal (แสดงเมื่อมีการสแกน QR จากหน้าใดๆ) */}
-      {quickReturnItem && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[999] flex items-center justify-center p-4 animate-fade-in">
-           <ReturnHistoryView 
-            boardGames={boardGames} 
-            onBack={() => setQuickReturnItem(null)} 
-            initialItem={quickReturnItem} // เพิ่ม Prop นี้เพื่อเจาะจงเกมที่สแกนมา
-          />
+      {/* Auto-Return Processing Overlay */}
+      {isProcessingScan && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-slate-800 font-black text-xl">กำลังประมวลผลการคืน...</p>
+            <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่ ระบบกำลังสื่อสารกับฐานข้อมูล</p>
+          </div>
         </div>
       )}
+
+      {/* Auto-Return Result Toast */}
+      {scanResult && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[1001] w-[90%] max-w-md animate-bounce-short">
+          <div className={`${scanResult.status === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-8 py-5 rounded-3xl shadow-2xl border-4 border-white/20 flex flex-col items-center text-center`}>
+            <div className="mb-2">
+              {scanResult.status === 'success' ? (
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+              ) : (
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              )}
+            </div>
+            <p className="font-black text-lg leading-tight">{scanResult.message}</p>
+            <button onClick={() => setScanResult(null)} className="mt-4 text-white/70 hover:text-white font-bold text-xs uppercase tracking-widest underline">ปิด</button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes bounce-short {
+          0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
+          40% {transform: translateY(-10px) translateX(-50%);}
+          60% {transform: translateY(-5px) translateX(-50%);}
+        }
+        .animate-bounce-short {
+          animation: bounce-short 0.8s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
