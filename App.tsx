@@ -49,6 +49,10 @@ const App: React.FC = () => {
   const scanBuffer = useRef('');
 
   useEffect(() => {
+    localStorage.setItem('boardGames', JSON.stringify(boardGames));
+  }, [boardGames]);
+
+  useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
@@ -70,7 +74,6 @@ const App: React.FC = () => {
     setScanResult(null);
 
     try {
-      // 1. ค้นหาแบบฉลาด (ลองหาตรงตัว, แปลงไทย->อิง, แปลงอิง->ไทย)
       const { toEng, toThai } = smartTranslate(scannedText);
       const foundGame = boardGames.find(g => 
         g.name.toLowerCase() === scannedText.toLowerCase() ||
@@ -85,7 +88,6 @@ const App: React.FC = () => {
         return;
       }
 
-      // 2. ตรวจสอบรายการที่ยืมอยู่ใน Google Sheet
       const result = await fetchBorrowedItems();
       if (result.success && result.data) {
         const borrowedMatch = result.data.find((item: any) => 
@@ -93,7 +95,6 @@ const App: React.FC = () => {
         );
 
         if (borrowedMatch) {
-          // 3. ทำการคืนอัตโนมัติทันที
           const returnRes = await recordReturn(borrowedMatch.studentId, borrowedMatch.gameName);
           if (returnRes.success) {
             setScanResult({
@@ -116,12 +117,45 @@ const App: React.FC = () => {
     }
   };
 
-  // --- UI Logic (คงเดิม) ---
   const selectedGames = useMemo(() => boardGames.filter(game => game.selected), [boardGames]);
+  
   const handleToggleSelect = (id: number) => setBoardGames(prev => prev.map(g => g.id === id ? { ...g, selected: !g.selected } : g));
+  
   const handleConfirmSelection = () => selectedGames.length > 0 ? setConfirmationModalOpen(true) : alert('กรุณาเลือกเกม');
+  
   const handleProceedToBorrow = () => { setView(View.BorrowForm); setConfirmationModalOpen(false); };
-  const handleBorrowSuccess = () => { setView(View.BorrowSuccess); setBoardGames(prev => prev.map(g => ({ ...g, selected: false }))); };
+  
+  const handleBorrowSuccess = () => {
+    setView(View.BorrowSuccess);
+    setBoardGames(prev => prev.map(g => ({ ...g, selected: false })));
+  };
+
+  const handleAddGame = (newGameData: { name: string; description: string; imageUrl: string; category: string; isPopular: boolean }) => {
+    const newGame: BoardGame = {
+      ...newGameData,
+      id: boardGames.length > 0 ? Math.max(...boardGames.map(g => g.id)) + 1 : 1,
+      selected: false,
+    };
+    setBoardGames(prevGames => [...prevGames, newGame]);
+  };
+
+  const handleUpdateGame = (updatedGame: BoardGame) => {
+    setBoardGames(prevGames =>
+      prevGames.map(game => (game.id === updatedGame.id ? updatedGame : game))
+    );
+  };
+
+  const handleDeleteGames = (ids: number[]) => {
+    setBoardGames(prevGames => prevGames.filter(game => !ids.includes(game.id)));
+  };
+
+  const handleResetData = () => {
+    if (window.confirm('คุณต้องการรีเซ็ตข้อมูลบอร์ดเกมทั้งหมดให้กลับเป็นค่าเริ่มต้น?')) {
+      setBoardGames(INITIAL_BOARD_GAMES);
+      localStorage.removeItem('boardGames');
+    }
+  };
+
   const handleBackToList = () => setView(View.List);
   const [isConfirmationModalOpen, setConfirmationModalOpen] = useState(false);
 
@@ -131,6 +165,17 @@ const App: React.FC = () => {
       case View.ReturnList: return <ReturnHistoryView boardGames={boardGames} onBack={handleBackToList} key={`ret-${refreshKey}`} />;
       case View.TransactionHistory: return <TransactionHistoryView onBack={handleBackToList} key={`his-${refreshKey}`} />;
       case View.BorrowForm: return <BorrowForm selectedGames={selectedGames} onSuccess={handleBorrowSuccess} onBack={handleBackToList} />;
+      case View.ManageGames:
+        return (
+          <ManageGamesView 
+            boardGames={boardGames} 
+            onAddGame={handleAddGame} 
+            onUpdateGame={handleUpdateGame}
+            onDeleteGames={handleDeleteGames}
+            onResetData={handleResetData}
+            onBack={handleBackToList} 
+          />
+        );
       case View.BorrowSuccess: return (
         <div className="flex flex-col items-center justify-center text-center p-12 bg-white shadow-2xl rounded-[40px] max-w-lg mx-auto mt-20 animate-scale-in border-t-8 border-green-500">
           <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8"><svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg></div>
@@ -150,7 +195,6 @@ const App: React.FC = () => {
 
       {isConfirmationModalOpen && <ConfirmationModal selectedGames={selectedGames} onClose={() => setConfirmationModalOpen(false)} onConfirm={handleProceedToBorrow} />}
 
-      {/* Loading Overlay */}
       {isProcessingScan && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center">
           <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl">
@@ -160,7 +204,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Result Notification */}
       {scanResult && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[1001] w-[90%] max-w-md animate-bounce-short">
           <div className={`${scanResult.status === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white px-8 py-6 rounded-3xl shadow-2xl border-4 border-white/20 flex flex-col items-center text-center`}>
