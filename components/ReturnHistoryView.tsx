@@ -27,7 +27,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
   const [showSuccess, setShowSuccess] = useState(false);
   const [returnError, setReturnError] = useState<string | null>(null);
   
-  // State สำหรับรับค่าจากเครื่องสแกน (Local Scanner)
   const [scanBuffer, setScanBuffer] = useState('');
   const scannerInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +52,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
     loadData();
   }, [loadData]);
 
-  // จัดการการ Focus ของเครื่องสแกนเพื่อให้พิมพ์ติดเสมอ
   useEffect(() => {
     const focusScanner = () => {
       if (!isConfirmingReturn && !showSuccess && scannerInputRef.current) {
@@ -68,20 +66,35 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
 
   const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      const gameName = scanBuffer.trim();
-      if (!gameName) return;
+      const scannedText = scanBuffer.trim();
+      if (!scannedText) return;
 
-      // ค้นหาเกมในรายการที่ยืมเพื่อหา Student ID มาคืนอัตโนมัติ
-      const match = borrowedItems.find(item => 
-        item.gameName.toLowerCase() === gameName.toLowerCase()
+      // --- แก้ไขตรรกะการค้นหาให้เหมือนหน้าหลัก ---
+      
+      // 1. หาว่ารหัสที่สแกนมาคือเกมอะไรในฐานข้อมูลหลัก (เช็ค Barcode ก่อน)
+      let foundInLibrary = boardGames.find(g => g.barcode === scannedText);
+      
+      // 2. ถ้าไม่เจอ Barcode ให้ลองเช็คว่าสแกนมาเป็นชื่อเกมตรงๆ หรือไม่
+      if (!foundInLibrary) {
+        foundInLibrary = boardGames.find(g => g.name.toLowerCase() === scannedText.toLowerCase());
+      }
+
+      if (!foundInLibrary) {
+        setReturnError(`ไม่พบรหัสหรือชื่อเกม "${scannedText}" ในระบบ`);
+        setScanBuffer('');
+        return;
+      }
+
+      // 3. เมื่อรู้ชื่อเกมแล้ว ค่อยไปหาในรายการที่ "กำลังยืมอยู่"
+      const matchInBorrowed = borrowedItems.find(item => 
+        item.gameName.toLowerCase() === foundInLibrary!.name.toLowerCase()
       );
 
-      if (match) {
-        // ทำเรื่องคืนอัตโนมัติทันที (Auto-Return)
+      if (matchInBorrowed) {
         setReturnError(null);
         setIsSubmitting(true);
         try {
-          const result = await recordReturn(match.studentId, match.gameName);
+          const result = await recordReturn(matchInBorrowed.studentId, matchInBorrowed.gameName);
           if (result.success) {
             setShowSuccess(true);
           } else {
@@ -93,14 +106,13 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
           setIsSubmitting(false);
         }
       } else {
-        setReturnError(`ไม่พบรายการยืมสำหรับเกม: "${gameName}" (อาจจะยังไม่ถูกยืม)`);
+        setReturnError(`เกม "${foundInLibrary.name}" ไม่ได้ถูกยืมอยู่ในขณะนี้`);
       }
       setScanBuffer('');
     }
   };
 
   const handleManualReturn = async () => {
-    // ฟังก์ชันนี้จะเรียกใช้งานเมื่อผู้ใช้คลิกปุ่มคืนบนการ์ดเกมเอง (แมนนวล)
     if (!isConfirmingReturn) return;
     
     const inputId = studentIdInput.trim();
@@ -164,7 +176,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in relative">
-      {/* Hidden input สำหรับดักจับค่าจากเครื่องสแกน */}
       <input
         ref={scannerInputRef}
         type="text"
@@ -174,7 +185,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         onKeyDown={handleScan}
       />
 
-      {/* Loading Overlay ขณะคืนอัตโนมัติ */}
       {isSubmitting && !isConfirmingReturn && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[200] flex items-center justify-center">
             <div className="bg-white p-8 rounded-[32px] shadow-2xl flex flex-col items-center gap-4">
@@ -184,7 +194,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         </div>
       )}
 
-      {/* Error Alert Bar */}
       {returnError && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[110] w-[90%] max-w-xl animate-bounce-short">
           <div className="bg-red-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center justify-between border-2 border-white/20 backdrop-blur-md">
@@ -270,7 +279,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         </div>
       )}
 
-      {/* Manual Return Modal (สำหรับกรณีคลิกปุ่มคืนเอง) */}
       {isConfirmingReturn && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className={`bg-white rounded-[32px] p-8 w-full max-w-sm mx-auto shadow-2xl border-4 ${returnError ? 'border-red-500 animate-shake' : 'border-blue-500'} transition-colors animate-scale-in`}>
