@@ -53,7 +53,6 @@ const App: React.FC = () => {
     switch (currentSeason) {
       case 'summer': return { 
         bg: 'bg-[#fff7ed]', 
-        bgUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=2000',
         text: 'หน้าร้อน (Summer)', 
         primary: 'orange',
         accent: 'bg-orange-500', 
@@ -64,7 +63,6 @@ const App: React.FC = () => {
       };
       case 'rainy': return { 
         bg: 'bg-[#f0fdfa]', 
-        bgUrl: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&q=80&w=2000',
         text: 'หน้าฝน (Rainy)', 
         primary: 'teal',
         accent: 'bg-teal-500', 
@@ -74,8 +72,7 @@ const App: React.FC = () => {
         cardActive: 'border-teal-500 shadow-teal-500/20'
       };
       case 'winter': return { 
-        bg: 'bg-[#0f172a]', 
-        bgUrl: 'https://images.unsplash.com/photo-1483354483454-4cd359948304?auto=format&fit=crop&q=80&w=2000', // ภาพป่าสนหน้าหนาวแบบที่คุณส่งมา
+        bg: 'bg-[#f0f9ff]', 
         text: 'หน้าหนาว (Winter)', 
         primary: 'blue',
         accent: 'bg-blue-500', 
@@ -167,15 +164,6 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen transition-all duration-1000 relative overflow-x-hidden ${theme.bg}`}>
-      {/* Background Image Layer */}
-      <div 
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 scale-105"
-        style={{ backgroundImage: `url(${theme.bgUrl})` }}
-      />
-      {/* Dark/Blur Overlay to keep UI legible */}
-      <div className="fixed inset-0 z-[1] bg-slate-900/10 backdrop-blur-[2px] transition-all duration-1000" />
-      <div className="fixed inset-0 z-[2] bg-gradient-to-b from-slate-900/30 via-transparent to-slate-900/40" />
-
       <SeasonalEffect season={currentSeason} />
       
       <Header 
@@ -193,11 +181,11 @@ const App: React.FC = () => {
           <button 
             onClick={toggleSeason}
             title="คลิกเพื่อสลับฤดูกาล"
-            className="group bg-white/20 backdrop-blur-xl px-6 py-2 rounded-full text-[11px] font-black text-white uppercase tracking-[0.2em] shadow-2xl border border-white/20 flex items-center gap-3 animate-slide-up hover:scale-110 transition-transform active:scale-95"
+            className="group bg-white/80 backdrop-blur-md px-6 py-2 rounded-full text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] shadow-lg border border-white/50 flex items-center gap-3 animate-slide-up hover:scale-110 transition-transform active:scale-95"
           >
              <span className={`w-3 h-3 rounded-full ${theme.accent} animate-ping`}></span>
              {theme.text}
-             <svg className="w-3 h-3 text-white/50 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M19 9l-7 7-7-7"/></svg>
+             <svg className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M19 9l-7 7-7-7"/></svg>
           </button>
         </div>
 
@@ -208,7 +196,7 @@ const App: React.FC = () => {
         {view === View.BorrowForm && <BorrowForm theme={theme} selectedGames={selectedGames} onSuccess={handleBorrowSuccess} onBack={handleBackToList} />}
         {view === View.ManageGames && <ManageGamesView theme={theme} boardGames={boardGames} onAddGame={(n:any)=>setBoardGames([...boardGames, {...n, id:Date.now(), selected:false}])} onUpdateGame={(u)=>setBoardGames(boardGames.map(g=>g.id===u.id?u:g))} onDeleteGames={(ids)=>setBoardGames(boardGames.filter(g=>!ids.includes(g.id)))} onResetData={()=>{setBoardGames(INITIAL_BOARD_GAMES); localStorage.removeItem('boardGames');}} onBack={handleBackToList} />}
         {view === View.BorrowSuccess && (
-          <div className="flex flex-col items-center justify-center text-center p-12 bg-white/90 backdrop-blur-2xl shadow-2xl rounded-[50px] max-w-lg mx-auto mt-20 animate-scale-in border-b-[15px] border-green-500">
+          <div className="flex flex-col items-center justify-center text-center p-12 bg-white/90 backdrop-blur-xl shadow-2xl rounded-[50px] max-w-lg mx-auto mt-20 animate-scale-in border-b-[15px] border-green-500">
             <div className="w-28 h-28 bg-green-100 rounded-full flex items-center justify-center mb-8 animate-bounce-short"><svg className="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg></div>
             <h2 className="text-4xl font-black text-slate-800 mb-3">ยืมสำเร็จ!</h2>
             <p className="text-slate-500 mb-10 font-bold italic">อย่าลืมดูแลบอร์ดเกมและคืนตามเวลาที่กำหนดนะ</p>
@@ -218,9 +206,9 @@ const App: React.FC = () => {
         {view === View.List && <BoardGameList theme={theme} boardGames={boardGames} onToggleSelect={handleToggleSelect} onConfirm={handleConfirmSelection} selectedCount={selectedGames.length} />}
       </main>
 
-      {/* Floating Checkout Bar */}
+      {/* Seasonal Selection Bar */}
       {(view === View.List || view === View.Search) && selectedGames.length > 0 && (
-        <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/90 backdrop-blur-3xl border border-white/20 p-5 rounded-[35px] z-[200] shadow-[0_25px_60px_rgba(0,0,0,0.6)] flex items-center justify-between px-10 animate-scale-in">
+        <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/90 backdrop-blur-2xl border border-white/10 p-5 rounded-[35px] z-[200] shadow-[0_25px_60px_rgba(0,0,0,0.4)] flex items-center justify-between px-10 animate-scale-in">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
               <span className={`text-${theme.primary}-400 text-[10px] font-black uppercase tracking-widest mb-1 transition-colors`}>Queue</span>
