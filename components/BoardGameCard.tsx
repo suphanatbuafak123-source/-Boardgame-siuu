@@ -5,19 +5,21 @@ import { BoardGame } from '../types';
 interface BoardGameCardProps {
   game: BoardGame;
   onToggleSelect: (id: number) => void;
+  theme?: any;
 }
 
-const BoardGameCard: React.FC<BoardGameCardProps> = ({ game, onToggleSelect }) => {
+const BoardGameCard: React.FC<BoardGameCardProps> = ({ game, onToggleSelect, theme }) => {
   const { id, name, description, imageUrl, selected, category, isPopular } = game;
+  const primaryColor = theme?.primary || 'blue';
 
   return (
     <div
-      className={`group relative bg-white/80 backdrop-blur-sm rounded-[35px] shadow-[0_10px_30px_rgba(0,0,0,0.05)] overflow-hidden transform transition-all duration-500 hover:-translate-y-4 hover:shadow-[0_25px_50px_rgba(0,0,0,0.15)] cursor-pointer border-4 ${selected ? 'border-blue-500 scale-[1.02] shadow-blue-500/20' : 'border-transparent hover:border-white/50'}`}
+      className={`group relative bg-white/80 backdrop-blur-sm rounded-[35px] shadow-[0_10px_30px_rgba(0,0,0,0.05)] overflow-hidden transform transition-all duration-500 hover:-translate-y-4 hover:shadow-[0_25px_50px_rgba(0,0,0,0.15)] cursor-pointer border-4 ${selected ? `border-${primaryColor}-500 scale-[1.02] shadow-${primaryColor}-500/20` : 'border-transparent hover:border-white/50'}`}
       onClick={() => onToggleSelect(id)}
     >
       {/* Selection Glow */}
       {selected && (
-        <div className="absolute inset-0 bg-blue-500/5 animate-pulse z-0 pointer-events-none" />
+        <div className={`absolute inset-0 bg-${primaryColor}-500/5 animate-pulse z-0 pointer-events-none`} />
       )}
 
       {/* Badges - Premium Look */}
@@ -45,23 +47,23 @@ const BoardGameCard: React.FC<BoardGameCardProps> = ({ game, onToggleSelect }) =
         <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
         {/* Quick select indicator */}
-        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${selected ? 'bg-blue-600/20' : 'bg-black/0 opacity-0 group-hover:opacity-100 group-hover:bg-black/10'}`}>
-           <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 ${selected ? 'bg-blue-600 scale-100' : 'bg-white scale-75 group-hover:scale-100'}`}>
+        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${selected ? `bg-${primaryColor}-600/20` : 'bg-black/0 opacity-0 group-hover:opacity-100 group-hover:bg-black/10'}`}>
+           <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 ${selected ? `bg-${primaryColor}-600 scale-100` : 'bg-white scale-75 group-hover:scale-100'}`}>
               <svg className={`w-8 h-8 ${selected ? 'text-white' : 'text-slate-900'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d={selected ? "M5 13l4 4L19 7" : "M12 4v16m8-8H4"}></path></svg>
            </div>
         </div>
       </div>
 
       <div className="p-6 relative z-10">
-        <h3 className="text-2xl font-black text-slate-800 mb-2 truncate group-hover:text-blue-600 transition-colors" title={name}>{name}</h3>
+        <h3 className={`text-2xl font-black text-slate-800 mb-2 truncate group-hover:text-${primaryColor}-600 transition-colors`} title={name}>{name}</h3>
         <p className="text-slate-500 text-sm mb-6 line-clamp-2 font-medium leading-relaxed">{description}</p>
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${selected ? 'bg-blue-600 text-white rotate-[360deg]' : 'bg-slate-100 text-slate-300'}`}>
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${selected ? `bg-${primaryColor}-600 text-white rotate-[360deg]` : 'bg-slate-100 text-slate-300'}`}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path></svg>
             </div>
-            <span className={`text-sm font-black transition-colors ${selected ? 'text-blue-600' : 'text-slate-400'}`}>
+            <span className={`text-sm font-black transition-colors ${selected ? `text-${primaryColor}-600` : 'text-slate-400'}`}>
               {selected ? 'SELECTED' : 'SELECT GAME'}
             </span>
           </div>

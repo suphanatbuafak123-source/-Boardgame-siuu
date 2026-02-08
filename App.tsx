@@ -41,11 +41,46 @@ const App: React.FC = () => {
     return 'winter';
   });
 
-  const themeConfig = useMemo(() => {
+  const toggleSeason = () => {
+    setCurrentSeason(prev => {
+      if (prev === 'summer') return 'rainy';
+      if (prev === 'rainy') return 'winter';
+      return 'summer';
+    });
+  };
+
+  const theme = useMemo(() => {
     switch (currentSeason) {
-      case 'summer': return { bg: 'bg-orange-50/50', header: 'border-orange-200', text: 'หน้าร้อน (Summer)', accent: 'bg-orange-500', btn: 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/30' };
-      case 'rainy': return { bg: 'bg-teal-50/50', header: 'border-teal-200', text: 'หน้าฝน (Rainy)', accent: 'bg-teal-500', btn: 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/30' };
-      case 'winter': return { bg: 'bg-blue-50/50', header: 'border-blue-200', text: 'หน้าหนาว (Winter)', accent: 'bg-blue-500', btn: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' };
+      case 'summer': return { 
+        bg: 'bg-[#fff7ed]', 
+        text: 'หน้าร้อน (Summer)', 
+        primary: 'orange',
+        accent: 'bg-orange-500', 
+        btn: 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/30',
+        ring: 'focus:ring-orange-100',
+        border: 'border-orange-200',
+        cardActive: 'border-orange-500 shadow-orange-500/20'
+      };
+      case 'rainy': return { 
+        bg: 'bg-[#f0fdfa]', 
+        text: 'หน้าฝน (Rainy)', 
+        primary: 'teal',
+        accent: 'bg-teal-500', 
+        btn: 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/30',
+        ring: 'focus:ring-teal-100',
+        border: 'border-teal-200',
+        cardActive: 'border-teal-500 shadow-teal-500/20'
+      };
+      case 'winter': return { 
+        bg: 'bg-[#f0f9ff]', 
+        text: 'หน้าหนาว (Winter)', 
+        primary: 'blue',
+        accent: 'bg-blue-500', 
+        btn: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30',
+        ring: 'focus:ring-blue-100',
+        border: 'border-blue-200',
+        cardActive: 'border-blue-500 shadow-blue-500/20'
+      };
     }
   }, [currentSeason]);
 
@@ -128,7 +163,7 @@ const App: React.FC = () => {
   const [isConfirmationModalOpen, setConfirmationModalOpen] = useState(false);
 
   return (
-    <div className={`min-h-screen transition-all duration-1000 relative overflow-x-hidden ${themeConfig.bg}`}>
+    <div className={`min-h-screen transition-all duration-1000 relative overflow-x-hidden ${theme.bg}`}>
       <SeasonalEffect season={currentSeason} />
       
       <Header 
@@ -137,40 +172,46 @@ const App: React.FC = () => {
         onSearchClick={() => setView(View.Search)} 
         onHistoryClick={() => setView(View.TransactionHistory)}
         season={currentSeason}
+        theme={theme}
       />
       
       <main className="container mx-auto px-4 py-8 relative z-10 min-h-[calc(100vh-100px)]">
-        {/* Dynamic Badge */}
+        {/* Dynamic Badge with Toggle Capability */}
         <div className="flex justify-center mb-8">
-          <div className="bg-white/80 backdrop-blur-md px-6 py-2 rounded-full text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] shadow-lg border border-white/50 flex items-center gap-3 animate-slide-up">
-             <span className={`w-3 h-3 rounded-full ${themeConfig.accent} animate-ping`}></span>
-             {themeConfig.text}
-          </div>
+          <button 
+            onClick={toggleSeason}
+            title="คลิกเพื่อสลับฤดูกาล"
+            className="group bg-white/80 backdrop-blur-md px-6 py-2 rounded-full text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] shadow-lg border border-white/50 flex items-center gap-3 animate-slide-up hover:scale-110 transition-transform active:scale-95"
+          >
+             <span className={`w-3 h-3 rounded-full ${theme.accent} animate-ping`}></span>
+             {theme.text}
+             <svg className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M19 9l-7 7-7-7"/></svg>
+          </button>
         </div>
 
-        {/* Content Render */}
-        {view === View.Search && <SearchView boardGames={boardGames} onToggleSelect={handleToggleSelect} onConfirm={handleConfirmSelection} selectedCount={selectedGames.length} onBack={handleBackToList} />}
-        {view === View.ReturnList && <ReturnHistoryView boardGames={boardGames} onBack={handleBackToList} key={`ret-${refreshKey}`} />}
-        {view === View.TransactionHistory && <TransactionHistoryView onBack={handleBackToList} key={`his-${refreshKey}`} />}
-        {view === View.BorrowForm && <BorrowForm selectedGames={selectedGames} onSuccess={handleBorrowSuccess} onBack={handleBackToList} />}
-        {view === View.ManageGames && <ManageGamesView boardGames={boardGames} onAddGame={(n:any)=>setBoardGames([...boardGames, {...n, id:Date.now(), selected:false}])} onUpdateGame={(u)=>setBoardGames(boardGames.map(g=>g.id===u.id?u:g))} onDeleteGames={(ids)=>setBoardGames(boardGames.filter(g=>!ids.includes(g.id)))} onResetData={()=>{setBoardGames(INITIAL_BOARD_GAMES); localStorage.removeItem('boardGames');}} onBack={handleBackToList} />}
+        {/* Content Render - Passing theme where needed */}
+        {view === View.Search && <SearchView theme={theme} boardGames={boardGames} onToggleSelect={handleToggleSelect} onConfirm={handleConfirmSelection} selectedCount={selectedGames.length} onBack={handleBackToList} />}
+        {view === View.ReturnList && <ReturnHistoryView theme={theme} boardGames={boardGames} onBack={handleBackToList} key={`ret-${refreshKey}`} />}
+        {view === View.TransactionHistory && <TransactionHistoryView theme={theme} onBack={handleBackToList} key={`his-${refreshKey}`} />}
+        {view === View.BorrowForm && <BorrowForm theme={theme} selectedGames={selectedGames} onSuccess={handleBorrowSuccess} onBack={handleBackToList} />}
+        {view === View.ManageGames && <ManageGamesView theme={theme} boardGames={boardGames} onAddGame={(n:any)=>setBoardGames([...boardGames, {...n, id:Date.now(), selected:false}])} onUpdateGame={(u)=>setBoardGames(boardGames.map(g=>g.id===u.id?u:g))} onDeleteGames={(ids)=>setBoardGames(boardGames.filter(g=>!ids.includes(g.id)))} onResetData={()=>{setBoardGames(INITIAL_BOARD_GAMES); localStorage.removeItem('boardGames');}} onBack={handleBackToList} />}
         {view === View.BorrowSuccess && (
           <div className="flex flex-col items-center justify-center text-center p-12 bg-white/90 backdrop-blur-xl shadow-2xl rounded-[50px] max-w-lg mx-auto mt-20 animate-scale-in border-b-[15px] border-green-500">
             <div className="w-28 h-28 bg-green-100 rounded-full flex items-center justify-center mb-8 animate-bounce-short"><svg className="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg></div>
             <h2 className="text-4xl font-black text-slate-800 mb-3">ยืมสำเร็จ!</h2>
             <p className="text-slate-500 mb-10 font-bold italic">อย่าลืมดูแลบอร์ดเกมและคืนตามเวลาที่กำหนดนะ</p>
-            <button onClick={handleBackToList} className={`${themeConfig.btn} w-full text-white font-black py-5 px-8 rounded-3xl transition-all shadow-xl text-xl`}>กลับหน้าหลัก</button>
+            <button onClick={handleBackToList} className={`${theme.btn} w-full text-white font-black py-5 px-8 rounded-3xl transition-all shadow-xl text-xl`}>กลับหน้าหลัก</button>
           </div>
         )}
-        {view === View.List && <BoardGameList boardGames={boardGames} onToggleSelect={handleToggleSelect} onConfirm={handleConfirmSelection} selectedCount={selectedGames.length} />}
+        {view === View.List && <BoardGameList theme={theme} boardGames={boardGames} onToggleSelect={handleToggleSelect} onConfirm={handleConfirmSelection} selectedCount={selectedGames.length} />}
       </main>
 
-      {/* Seasonal Control & Selection Bar */}
+      {/* Seasonal Selection Bar */}
       {(view === View.List || view === View.Search) && selectedGames.length > 0 && (
         <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/90 backdrop-blur-2xl border border-white/10 p-5 rounded-[35px] z-[200] shadow-[0_25px_60px_rgba(0,0,0,0.4)] flex items-center justify-between px-10 animate-scale-in">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
-              <span className="text-blue-400 text-[10px] font-black uppercase tracking-widest mb-1">Queue</span>
+              <span className={`text-${theme.primary}-400 text-[10px] font-black uppercase tracking-widest mb-1 transition-colors`}>Queue</span>
               <span className="text-white font-black text-2xl">{selectedGames.length} <span className="text-sm font-bold text-slate-400">เกม</span></span>
             </div>
             <div className="h-10 w-[1px] bg-white/10"></div>
@@ -183,7 +224,7 @@ const App: React.FC = () => {
           </div>
           <button
             onClick={handleConfirmSelection}
-            className={`${themeConfig.btn} text-white font-black py-4 px-12 rounded-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 text-lg`}
+            className={`${theme.btn} text-white font-black py-4 px-12 rounded-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 text-lg`}
           >
             <span>ยืมเลย</span>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
@@ -191,15 +232,13 @@ const App: React.FC = () => {
         </footer>
       )}
 
-      {/* App Modals */}
-      {isConfirmationModalOpen && <ConfirmationModal selectedGames={selectedGames} onClose={() => setConfirmationModalOpen(false)} onConfirm={handleProceedToBorrow} />}
-      {isPasswordModalOpen && <PasswordModal onClose={() => setIsPasswordModalOpen(false)} onSuccess={() => {setIsPasswordModalOpen(false); setView(View.ManageGames);}} />}
+      {isConfirmationModalOpen && <ConfirmationModal theme={theme} selectedGames={selectedGames} onClose={() => setConfirmationModalOpen(false)} onConfirm={handleProceedToBorrow} />}
+      {isPasswordModalOpen && <PasswordModal theme={theme} onClose={() => setIsPasswordModalOpen(false)} onSuccess={() => {setIsPasswordModalOpen(false); setView(View.ManageGames);}} />}
       
-      {/* Scanner Loading Overlay */}
       {isProcessingScan && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[2000] flex items-center justify-center">
           <div className="bg-white rounded-[50px] p-12 flex flex-col items-center shadow-2xl animate-scale-in border-4 border-blue-500">
-            <div className="w-20 h-20 border-8 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+            <div className={`w-20 h-20 border-8 border-${theme.primary}-600 border-t-transparent rounded-full animate-spin mb-6`}></div>
             <p className="text-slate-800 font-black text-2xl">กำลังตรวจสอบรหัส...</p>
           </div>
         </div>
@@ -222,10 +261,6 @@ const App: React.FC = () => {
         .animate-slide-up { animation: slide-up-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .animate-scale-in { animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
         .animate-bounce-short { animation: bounce-short 0.6s ease-in-out; }
-        
-        /* Glassmorphism Classes */
-        .glass-panel { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.5); }
-        .glass-dark { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); }
       `}</style>
     </div>
   );

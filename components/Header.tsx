@@ -7,9 +7,10 @@ interface HeaderProps {
   onSearchClick: () => void;
   onHistoryClick: () => void;
   season?: string;
+  theme: any;
 }
 
-const Header: React.FC<HeaderProps> = ({ onReturnClick, onManageClick, onSearchClick, onHistoryClick, season }) => {
+const Header: React.FC<HeaderProps> = ({ onReturnClick, onManageClick, onSearchClick, onHistoryClick, season, theme }) => {
   const getSeasonStyle = () => {
     switch (season) {
       case 'summer': return 'border-orange-100/50 bg-white/60 shadow-[0_8px_32px_0_rgba(251,146,60,0.1)]';
@@ -19,27 +20,29 @@ const Header: React.FC<HeaderProps> = ({ onReturnClick, onManageClick, onSearchC
     }
   };
 
+  const primaryColorClass = `text-${theme.primary}-600`;
+  const primaryBgClass = `bg-${theme.primary}-600`;
+
   return (
     <header className={`backdrop-blur-xl border-b sticky top-0 z-[100] transition-all duration-1000 ${getSeasonStyle()}`}>
       <div className="container mx-auto px-6 py-4 flex justify-between items-center gap-4">
         {/* Enhanced Logo */}
         <div className="flex items-center overflow-hidden cursor-pointer group" onClick={() => window.location.reload()}>
-          <div className="w-12 h-12 bg-blue-600 rounded-[18px] flex items-center justify-center mr-4 group-hover:rotate-[15deg] transition-all duration-500 shadow-xl shadow-blue-500/40 transform group-hover:scale-110">
+          <div className={`w-12 h-12 ${primaryBgClass} rounded-[18px] flex items-center justify-center mr-4 group-hover:rotate-[15deg] transition-all duration-500 shadow-xl shadow-${theme.primary}-500/40 transform group-hover:scale-110`}>
             <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
           </div>
           <div className="flex flex-col">
-            <h1 className="text-xl md:text-2xl font-black text-slate-800 leading-none">ยืมคืน <span className="text-blue-600">บอร์ดเกม</span></h1>
+            <h1 className="text-xl md:text-2xl font-black text-slate-800 leading-none">ยืมคืน <span className={primaryColorClass}>{season === 'summer' ? 'บอร์ดเกม' : season === 'rainy' ? 'บอร์ดเกม' : 'บอร์ดเกม'}</span></h1>
             <span className="text-[9px] font-black text-slate-400 tracking-[0.3em] uppercase mt-1">Wanich Library</span>
           </div>
         </div>
 
         <div className="flex items-center space-x-2 md:space-x-4">
-          {/* Action Buttons with better styling */}
           <div className="hidden md:flex items-center gap-2 pr-4 border-r border-slate-200">
-             <button onClick={onSearchClick} className="w-10 h-10 flex items-center justify-center rounded-2xl text-slate-500 hover:bg-white hover:text-blue-600 hover:shadow-md transition-all">
+             <button onClick={onSearchClick} className={`w-10 h-10 flex items-center justify-center rounded-2xl text-slate-500 hover:bg-white hover:${primaryColorClass} hover:shadow-md transition-all`}>
                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
              </button>
-             <button onClick={onHistoryClick} className="w-10 h-10 flex items-center justify-center rounded-2xl text-slate-500 hover:bg-white hover:text-blue-600 hover:shadow-md transition-all">
+             <button onClick={onHistoryClick} className={`w-10 h-10 flex items-center justify-center rounded-2xl text-slate-500 hover:bg-white hover:${primaryColorClass} hover:shadow-md transition-all`}>
                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
              </button>
           </div>

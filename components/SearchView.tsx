@@ -9,6 +9,8 @@ interface SearchViewProps {
   onToggleSelect: (id: number) => void;
   onConfirm: () => void;
   onBack: () => void;
+  // Added theme prop to fix TypeScript error
+  theme?: any;
 }
 
 const SearchView: React.FC<SearchViewProps> = ({ 
@@ -16,7 +18,8 @@ const SearchView: React.FC<SearchViewProps> = ({
   selectedCount, 
   onToggleSelect, 
   onConfirm, 
-  onBack 
+  onBack,
+  theme // Destructure theme
 }) => {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +89,7 @@ const SearchView: React.FC<SearchViewProps> = ({
               key={game.id}
               game={game}
               onToggleSelect={onToggleSelect}
+              theme={theme}
             />
           ))}
         </div>

@@ -4,6 +4,8 @@ import { fetchAllTransactions } from '../services/googleSheetService';
 
 interface TransactionHistoryViewProps {
   onBack: () => void;
+  // Added theme prop to fix TypeScript error
+  theme?: any;
 }
 
 interface Transaction {
@@ -22,7 +24,7 @@ const thaiMonthsFull = [
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
 ];
 
-const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack }) => {
+const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack, theme }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

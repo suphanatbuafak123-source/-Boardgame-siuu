@@ -5,9 +5,10 @@ import { BoardGame } from '../types';
 interface GameCarouselProps {
   popularGames: BoardGame[];
   onToggleSelect: (id: number) => void;
+  theme: any;
 }
 
-const GameCarousel: React.FC<GameCarouselProps> = ({ popularGames, onToggleSelect }) => {
+const GameCarousel: React.FC<GameCarouselProps> = ({ popularGames, onToggleSelect, theme }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const nextSlide = useCallback(() => {
@@ -19,7 +20,7 @@ const GameCarousel: React.FC<GameCarouselProps> = ({ popularGames, onToggleSelec
   };
 
   useEffect(() => {
-    const interval = setInterval(nextSlide, 5000); // เลื่อนอัตโนมัติทุก 5 วินาที
+    const interval = setInterval(nextSlide, 5000); 
     return () => clearInterval(interval);
   }, [nextSlide]);
 
@@ -27,7 +28,6 @@ const GameCarousel: React.FC<GameCarouselProps> = ({ popularGames, onToggleSelec
 
   return (
     <div className="relative w-full overflow-hidden rounded-3xl mb-10 shadow-2xl bg-slate-800">
-      {/* Slides Container */}
       <div 
         className="flex transition-transform duration-700 ease-in-out h-[300px] md:h-[400px]"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -39,10 +39,8 @@ const GameCarousel: React.FC<GameCarouselProps> = ({ popularGames, onToggleSelec
               alt={game.name} 
               className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-1000"
             />
-            {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
             
-            {/* Content Overlay */}
             <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full text-white">
               <div className="flex items-center gap-3 mb-2">
                 <span className="bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
@@ -58,8 +56,8 @@ const GameCarousel: React.FC<GameCarouselProps> = ({ popularGames, onToggleSelec
                 onClick={() => onToggleSelect(game.id)}
                 className={`px-8 py-3 rounded-full font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 ${
                   game.selected 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-white text-slate-900 hover:bg-slate-100'
+                  ? `bg-${theme.primary}-500 text-white shadow-lg shadow-${theme.primary}-500/40` 
+                  : 'bg-white text-slate-900 hover:bg-slate-100 shadow-xl'
                 }`}
               >
                 {game.selected ? (
@@ -79,28 +77,13 @@ const GameCarousel: React.FC<GameCarouselProps> = ({ popularGames, onToggleSelec
         ))}
       </div>
 
-      {/* Navigation Arrows */}
-      <button 
-        onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-full text-white transition-colors z-10 hidden md:block"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
-      </button>
-      <button 
-        onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-full text-white transition-colors z-10 hidden md:block"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
-      </button>
-
-      {/* Indicators */}
       <div className="absolute bottom-6 right-6 flex gap-2">
         {popularGames.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrentIndex(i)}
             className={`transition-all duration-300 rounded-full h-2 ${
-              currentIndex === i ? 'w-8 bg-blue-500' : 'w-2 bg-white/50 hover:bg-white/80'
+              currentIndex === i ? `w-8 bg-${theme.primary}-500` : 'w-2 bg-white/50 hover:bg-white/80'
             }`}
           />
         ))}

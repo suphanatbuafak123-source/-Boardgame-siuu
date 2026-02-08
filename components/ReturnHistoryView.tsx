@@ -6,6 +6,8 @@ import { recordReturn, fetchBorrowedItems } from '../services/googleSheetService
 interface ReturnHistoryViewProps {
   boardGames: BoardGame[];
   onBack: () => void;
+  // Added theme prop to fix TypeScript error
+  theme?: any;
 }
 
 interface BorrowedItem {
@@ -17,7 +19,7 @@ interface BorrowedItem {
   borrowTimestamp: string; 
 }
 
-const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBack }) => {
+const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBack, theme }) => {
   const [borrowedItems, setBorrowedItems] = useState<BorrowedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

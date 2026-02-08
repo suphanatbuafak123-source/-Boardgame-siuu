@@ -7,6 +7,8 @@ interface BorrowFormProps {
   selectedGames: BoardGame[];
   onSuccess: () => void;
   onBack: () => void;
+  // Added theme prop to fix TypeScript error
+  theme?: any;
 }
 
 const MAJORS = [
@@ -16,7 +18,7 @@ const MAJORS = [
   'ภาษาต่างประเทศ',
 ];
 
-const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBack }) => {
+const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBack, theme }) => {
   const [studentId, setStudentId] = useState('');
   const [classroom, setClassroom] = useState('');
   const [numberOfPlayers, setNumberOfPlayers] = useState('');
@@ -64,9 +66,11 @@ const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBac
     }
   };
 
+  const primaryColor = theme?.primary || 'blue';
+
   return (
     <div className="max-w-lg mx-auto bg-white p-8 rounded-[40px] shadow-2xl border border-slate-100 animate-slide-up">
-      <button onClick={onBack} className="text-slate-400 hover:text-blue-600 font-bold mb-6 flex items-center transition-colors">
+      <button onClick={onBack} className={`text-slate-400 hover:text-${primaryColor}-600 font-bold mb-6 flex items-center transition-colors`}>
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         ย้อนกลับ
       </button>
@@ -98,7 +102,7 @@ const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBac
             className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl focus:ring-4 transition-all outline-none text-lg font-bold ${
               studentId.length > 0 && studentId.length !== 5 
                 ? 'border-red-300 ring-red-100 focus:ring-red-100' 
-                : 'border-slate-200 focus:ring-blue-100 focus:border-blue-500'
+                : `border-slate-200 focus:ring-${primaryColor}-100 focus:border-${primaryColor}-500`
             }`}
             placeholder="เช่น 12345"
             required
@@ -120,7 +124,7 @@ const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBac
               }
             }}
             inputMode="numeric"
-            className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none font-bold"
+            className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-${primaryColor}-100 focus:border-${primaryColor}-500 outline-none font-bold`}
             placeholder="เช่น 311"
             required
           />
@@ -132,7 +136,7 @@ const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBac
             id="numberOfPlayers"
             value={numberOfPlayers}
             onChange={(e) => setNumberOfPlayers(e.target.value)}
-            className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none font-bold"
+            className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-${primaryColor}-100 focus:border-${primaryColor}-500 outline-none font-bold`}
             placeholder="กี่คน?"
             min="1"
             required
@@ -144,7 +148,7 @@ const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBac
             id="major"
             value={major}
             onChange={(e) => setMajor(e.target.value)}
-            className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none font-bold cursor-pointer"
+            className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-${primaryColor}-100 focus:border-${primaryColor}-500 outline-none font-bold cursor-pointer`}
             required
           >
             <option value="">-- เลือกสาขา --</option>
@@ -156,7 +160,7 @@ const BorrowForm: React.FC<BorrowFormProps> = ({ selectedGames, onSuccess, onBac
         <button
           type="submit"
           disabled={isLoading || (studentId.length > 0 && studentId.length !== 5)}
-          className="w-full bg-blue-600 text-white font-black py-5 px-6 rounded-2xl hover:bg-blue-700 transition duration-300 ease-in-out disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-xl shadow-blue-500/20 transform active:scale-95"
+          className={`w-full bg-${primaryColor}-600 text-white font-black py-5 px-6 rounded-2xl hover:bg-${primaryColor}-700 transition duration-300 ease-in-out disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-xl shadow-${primaryColor}-500/20 transform active:scale-95`}
         >
           {isLoading ? (
             <div className="flex items-center justify-center gap-2">
