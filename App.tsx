@@ -10,6 +10,7 @@ import ManageGamesView from './components/ManageGamesView';
 import SearchView from './components/SearchView';
 import ReturnHistoryView from './components/ReturnHistoryView';
 import TransactionHistoryView from './components/TransactionHistoryView';
+import PasswordModal from './components/PasswordModal';
 import { fetchBorrowedItems, recordReturn } from './services/googleSheetService';
 
 const EN_CHARS = "qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>? ";
@@ -30,6 +31,8 @@ const smartTranslate = (text: string) => {
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.List);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  
   const [boardGames, setBoardGames] = useState<BoardGame[]>(() => {
     try {
       const savedGames = localStorage.getItem('boardGames');
@@ -171,9 +174,25 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-[#f8fafc] min-h-screen font-sans text-slate-800 pb-20">
-      <Header onReturnClick={() => setView(View.ReturnList)} onManageClick={() => setView(View.ManageGames)} onSearchClick={() => setView(View.Search)} onHistoryClick={() => setView(View.TransactionHistory)} />
+      <Header 
+        onReturnClick={() => setView(View.ReturnList)} 
+        onManageClick={() => setIsPasswordModalOpen(true)} 
+        onSearchClick={() => setView(View.Search)} 
+        onHistoryClick={() => setView(View.TransactionHistory)} 
+      />
       <main className="container mx-auto px-4 py-8">{renderContent()}</main>
       {isConfirmationModalOpen && <ConfirmationModal selectedGames={selectedGames} onClose={() => setConfirmationModalOpen(false)} onConfirm={handleProceedToBorrow} />}
+      
+      {isPasswordModalOpen && (
+        <PasswordModal 
+          onClose={() => setIsPasswordModalOpen(false)} 
+          onSuccess={() => {
+            setIsPasswordModalOpen(false);
+            setView(View.ManageGames);
+          }} 
+        />
+      )}
+
       {isProcessingScan && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center">
           <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl">

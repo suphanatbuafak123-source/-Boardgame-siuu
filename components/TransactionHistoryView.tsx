@@ -43,18 +43,20 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
     loadData();
   }, [loadData]);
 
-  // แก้ไขฟังก์ชันจัดการวันที่ให้เป็นปี ค.ศ. (Gregorian)
+  // แก้ไขฟังก์ชันแสดงวันที่ให้เป็นปี พ.ศ.
   const formatDate = (dateStr: any) => {
-    if (!dateStr) return "-";
+    if (!dateStr || dateStr === "-") return "-";
     try {
-      const d = new Date(dateStr);
+      // พยายามแยกวันที่ออกจาก String (เช่น "2024-05-20" หรือ "2024-05-20 14:00:00")
+      const onlyDate = String(dateStr).split(' ')[0];
+      const d = new Date(onlyDate);
+      
       if (isNaN(d.getTime())) {
-        // กรณีดึงมาเป็น string ที่ parse ไม่ได้ ให้พยายามตัดเฉพาะส่วนวันที่มาแสดง
-        return String(dateStr).split(' ')[0] || String(dateStr);
+        return String(dateStr);
       }
       
-      // ใช้ 'th-TH-u-ca-gregory' เพื่อให้แสดงเดือนไทยแต่ปีเป็น ค.ศ. (เช่น 2024)
-      return d.toLocaleDateString('th-TH-u-ca-gregory', { 
+      // ใช้ th-TH เพื่อให้แสดงเป็นปี พ.ศ. (เช่น 2567)
+      return d.toLocaleDateString('th-TH', { 
         year: 'numeric', 
         month: 'short', 
         day: 'numeric' 
@@ -64,15 +66,30 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
     }
   };
 
+  // ฟังก์ชันล้างค่าเวลา (ในกรณีที่ Script ส่งมาเป็น String ที่มีวันที่ติดมาด้วย)
+  const formatTime = (timeStr: string | null) => {
+    if (!timeStr || timeStr === "-") return "-";
+    // ถ้ามีช่องว่าง (แสดงว่าเป็น Date ISO String) ให้เอาเฉพาะส่วนเวลา
+    if (timeStr.includes('T')) {
+        return timeStr.split('T')[1].split('.')[0];
+    }
+    // ถ้ามีวันที่ติดมาแบบ "2024-05-20 14:00:00" ให้เอาเฉพาะ 14:00:00
+    if (timeStr.includes(' ')) {
+        const parts = timeStr.split(' ');
+        return parts[parts.length - 1];
+    }
+    return timeStr;
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in">
-      <div className="flex items-center justify-between mb-10">
-        <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center font-bold transition-colors">
+      <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-4">
+        <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center font-bold transition-colors self-start">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           กลับหน้าหลัก
         </button>
-        <h2 className="text-3xl font-black text-slate-800">ประวัติการยืม-คืนทั้งหมด</h2>
-        <button onClick={loadData} disabled={isLoading} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-all disabled:opacity-50">
+        <h2 className="text-3xl font-black text-slate-800 text-center flex-1">ประวัติการยืม-คืนทั้งหมด</h2>
+        <button onClick={loadData} disabled={isLoading} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-all disabled:opacity-50 self-end">
           <svg className={`w-6 h-6 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
         </button>
       </div>
@@ -122,11 +139,11 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
                     <td className="px-6 py-4">
                       <p className="text-slate-500 text-xs font-bold uppercase">{t.classroom} | {t.major}</p>
                     </td>
-                    <td className="px-6 py-4 text-slate-500 text-sm font-medium">
-                      {t.borrowTime}
+                    <td className="px-6 py-4 text-slate-500 text-sm font-medium whitespace-nowrap">
+                      {formatTime(t.borrowTime)}
                     </td>
-                    <td className="px-6 py-4 text-slate-500 text-sm font-medium">
-                      {t.returnTime || "-"}
+                    <td className="px-6 py-4 text-slate-500 text-sm font-medium whitespace-nowrap">
+                      {formatTime(t.returnTime)}
                     </td>
                     <td className="px-6 py-4 text-center">
                       {t.returnTime ? (
