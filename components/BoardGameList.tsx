@@ -33,7 +33,7 @@ const BoardGameList: React.FC<BoardGameListProps> = ({ boardGames, selectedCount
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4">
+    <div className="max-w-7xl mx-auto px-4 animate-slide-up">
       {/* Highlight Section (Carousel) */}
       {activeCategory === 'ทั้งหมด' && popularGames.length > 0 && (
         <section className="mb-12">
@@ -91,7 +91,7 @@ const BoardGameList: React.FC<BoardGameListProps> = ({ boardGames, selectedCount
 
       {/* Floating Selection Bar */}
       {selectedCount > 0 && (
-        <footer className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-3xl z-50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between px-8">
+        <footer className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-3xl z-50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between px-8 animate-scale-in">
           <div className="flex flex-col">
             <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">Selected Games</span>
             <span className="text-white font-black text-lg">{selectedCount} รายการ</span>

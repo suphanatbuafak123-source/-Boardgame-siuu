@@ -48,50 +48,37 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
     loadData();
   }, [loadData]);
 
-  // ฟังก์ชันแสดงวันที่แบบ Manual ไม่ผ่าน new Date() เพื่อป้องกันเรื่อง Timezone
   const formatThaiDate = (dateStr: string) => {
     if (!dateStr || dateStr === "-") return "-";
-    
-    // คาดหวังรูปแบบ yyyy-mm-dd หรือ yyyy-mm-dd HH:mm:ss
     const cleanDate = dateStr.split(' ')[0]; 
     const parts = cleanDate.split('-');
-    
     if (parts.length !== 3) return dateStr;
-
     const year = parseInt(parts[0]);
     const month = parseInt(parts[1]);
     const day = parseInt(parts[2]);
-
     if (isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
-
     return `${day} ${thaiMonthsFull[month - 1]} ${year + 543}`;
   };
 
-  // ฟังก์ชันล้างค่าเวลา เอาเฉพาะ HH:mm
   const formatCleanTime = (timeStr: string | null) => {
     if (!timeStr || timeStr === "-" || timeStr === "null") return "-";
-    
-    // ถ้ามีวันที่ติดมาด้วย (เช่น "2024-05-20 14:00:00")
     let timeOnly = timeStr;
     if (timeStr.includes(' ')) {
       timeOnly = timeStr.split(' ')[1];
     } else if (timeStr.includes('T')) {
       timeOnly = timeStr.split('T')[1].split('.')[0];
     }
-
-    // เอาเฉพาะ HH:mm (ตัดวินาทีออกเพื่อความสวยงาม)
     const timeParts = timeOnly.split(':');
     if (timeParts.length >= 2) {
       return `${timeParts[0]}:${timeParts[1]} น.`;
     }
-    
     return timeOnly;
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-slide-up">
       <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-4">
-        <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center font-bold transition-colors self-start">
+        <button onClick={onBack} className="text-slate-400 hover:text-blue-600 flex items-center font-bold transition-colors self-start">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           กลับหน้าหลัก
         </button>

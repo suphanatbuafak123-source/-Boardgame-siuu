@@ -72,10 +72,7 @@ const App: React.FC = () => {
     setScanResult(null);
 
     try {
-      // 1. ค้นหาด้วยรหัส Barcode ก่อน (ลำดับความสำคัญสูงสุด)
       let foundGame = boardGames.find(g => g.barcode === scannedText);
-
-      // 2. ถ้าไม่เจอ Barcode ให้ค้นหาด้วยชื่อ (Smart Search)
       if (!foundGame) {
         const { toEng, toThai } = smartTranslate(scannedText);
         foundGame = boardGames.find(g => 
@@ -180,7 +177,8 @@ const App: React.FC = () => {
         onSearchClick={() => setView(View.Search)} 
         onHistoryClick={() => setView(View.TransactionHistory)} 
       />
-      <main className="container mx-auto px-4 py-8">{renderContent()}</main>
+      <main className="container mx-auto px-4 py-8 overflow-hidden">{renderContent()}</main>
+      
       {isConfirmationModalOpen && <ConfirmationModal selectedGames={selectedGames} onClose={() => setConfirmationModalOpen(false)} onConfirm={handleProceedToBorrow} />}
       
       {isPasswordModalOpen && (
@@ -195,12 +193,13 @@ const App: React.FC = () => {
 
       {isProcessingScan && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center">
-          <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl">
+          <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl animate-scale-in">
             <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-slate-800 font-black text-xl">กำลังประมวลผลด้วยรหัสสแกน...</p>
           </div>
         </div>
       )}
+      
       {scanResult && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[1001] w-[90%] max-w-md animate-bounce-short">
           <div className={`${scanResult.status === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white px-8 py-6 rounded-3xl shadow-2xl border-4 border-white/20 flex flex-col items-center text-center`}>
@@ -209,9 +208,27 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
       <style>{`
-        @keyframes bounce-short { 0%, 100% {transform: translateY(0) translateX(-50%);} 50% {transform: translateY(-10px) translateX(-50%);} }
+        @keyframes slide-up-fade {
+          0% { opacity: 0; transform: translateY(30px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bounce-short { 
+          0%, 100% {transform: translateY(0) translateX(-50%);} 
+          50% {transform: translateY(-10px) translateX(-50%);} 
+        }
+        @keyframes scale-in {
+          0% { opacity: 0; transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-slide-up { 
+          animation: slide-up-fade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
         .animate-bounce-short { animation: bounce-short 0.6s ease-in-out; }
+        .animate-scale-in { animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-fade-in { animation: opacity-in 0.5s ease forwards; }
+        @keyframes opacity-in { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
     </div>
   );

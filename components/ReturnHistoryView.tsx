@@ -69,12 +69,7 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
       const scannedText = scanBuffer.trim();
       if (!scannedText) return;
 
-      // --- แก้ไขตรรกะการค้นหาให้เหมือนหน้าหลัก ---
-      
-      // 1. หาว่ารหัสที่สแกนมาคือเกมอะไรในฐานข้อมูลหลัก (เช็ค Barcode ก่อน)
       let foundInLibrary = boardGames.find(g => g.barcode === scannedText);
-      
-      // 2. ถ้าไม่เจอ Barcode ให้ลองเช็คว่าสแกนมาเป็นชื่อเกมตรงๆ หรือไม่
       if (!foundInLibrary) {
         foundInLibrary = boardGames.find(g => g.name.toLowerCase() === scannedText.toLowerCase());
       }
@@ -85,7 +80,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
         return;
       }
 
-      // 3. เมื่อรู้ชื่อเกมแล้ว ค่อยไปหาในรายการที่ "กำลังยืมอยู่"
       const matchInBorrowed = borrowedItems.find(item => 
         item.gameName.toLowerCase() === foundInLibrary!.name.toLowerCase()
       );
@@ -175,7 +169,7 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in relative">
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-slide-up relative">
       <input
         ref={scannerInputRef}
         type="text"
@@ -187,7 +181,7 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
 
       {isSubmitting && !isConfirmingReturn && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[200] flex items-center justify-center">
-            <div className="bg-white p-8 rounded-[32px] shadow-2xl flex flex-col items-center gap-4">
+            <div className="bg-white p-8 rounded-[32px] shadow-2xl flex flex-col items-center gap-4 animate-scale-in">
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 <span className="font-black text-slate-800 text-lg">กำลังทำรายการคืนอัตโนมัติ...</span>
             </div>
@@ -209,7 +203,7 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
       )}
 
       <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
-        <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center font-bold self-start md:self-center">
+        <button onClick={onBack} className="text-slate-400 hover:text-blue-600 flex items-center font-bold self-start md:self-center transition-colors">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           กลับหน้าหลัก
         </button>
@@ -316,25 +310,6 @@ const ReturnHistoryView: React.FC<ReturnHistoryViewProps> = ({ boardGames, onBac
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-8px); }
-          75% { transform: translateX(8px); }
-        }
-        .animate-shake {
-          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
-        @keyframes bounce-short {
-          0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
-          40% {transform: translateY(-10px) translateX(-50%);}
-          60% {transform: translateY(-5px) translateX(-50%);}
-        }
-        .animate-bounce-short {
-          animation: bounce-short 1s ease infinite;
-        }
-      `}</style>
     </div>
   );
 };
