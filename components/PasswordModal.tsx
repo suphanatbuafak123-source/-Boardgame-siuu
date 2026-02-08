@@ -17,7 +17,7 @@ const PasswordModal: React.FC<PasswordModalProps> = ({ onClose, onSuccess, theme
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // ตรวจสอบรหัสผ่าน 1234
-    if (password === '1234') {
+    if (password === '0000') {
       onSuccess();
     } else {
       setError(true);

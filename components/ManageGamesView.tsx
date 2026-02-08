@@ -125,7 +125,7 @@ const ManageGamesView: React.FC<ManageGamesViewProps> = ({ boardGames, onAddGame
             </div>
 
             <div>
-              <label className={`block text-sm font-bold mb-1 text-${primaryColor}-600`}>รหัสสแกน (Barcode)</label>
+              <label className={`block text-sm font-bold mb-1 text-${primaryColor}-600`}>รหัสสแกน / ID ที่แสดงบนการ์ด</label>
               <input type="text" value={barcode} onChange={e => setBarcode(e.target.value)} className={`w-full px-4 py-2 border-2 border-${primaryColor}-100 rounded-xl focus:border-${primaryColor}-500 outline-none transition-all`} placeholder="เช่น 001" />
             </div>
 
@@ -225,7 +225,7 @@ const ManageGamesView: React.FC<ManageGamesViewProps> = ({ boardGames, onAddGame
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-slate-800 text-sm truncate">{game.name}</p>
                   <div className="flex gap-2 items-center">
-                    <span className={`text-[10px] font-bold text-${primaryColor}-600 bg-${primaryColor}-100 px-2 py-0.5 rounded-full`}>ID: {game.barcode || '-'}</span>
+                    <span className={`text-[10px] font-bold text-${primaryColor}-600 bg-${primaryColor}-100 px-2 py-0.5 rounded-full`}>#{game.barcode || game.id.toString().slice(-3)}</span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase">{game.category}</span>
                   </div>
                 </div>

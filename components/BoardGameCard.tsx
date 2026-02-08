@@ -9,7 +9,7 @@ interface BoardGameCardProps {
 }
 
 const BoardGameCard: React.FC<BoardGameCardProps> = ({ game, onToggleSelect, theme }) => {
-  const { id, name, description, imageUrl, selected, category, isPopular } = game;
+  const { id, name, description, imageUrl, selected, category, isPopular, barcode } = game;
   const primaryColor = theme?.primary || 'blue';
 
   return (
@@ -67,7 +67,10 @@ const BoardGameCard: React.FC<BoardGameCardProps> = ({ game, onToggleSelect, the
               {selected ? 'SELECTED' : 'SELECT GAME'}
             </span>
           </div>
-          <div className="text-[10px] font-bold text-slate-300 group-hover:text-slate-400 transition-colors">#{id.toString().padStart(3, '0')}</div>
+          {/* แก้ไขตรงนี้: แสดงรหัส barcode ถ้าไม่มีให้ใช้ id 3 หลักสุดท้าย */}
+          <div className="text-[10px] font-bold text-slate-300 group-hover:text-slate-400 transition-colors">
+            #{barcode || id.toString().slice(-3)}
+          </div>
         </div>
       </div>
     </div>
