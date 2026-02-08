@@ -88,23 +88,6 @@ const BoardGameList: React.FC<BoardGameListProps> = ({ boardGames, selectedCount
           )}
         </div>
       </section>
-
-      {/* Floating Selection Bar */}
-      {selectedCount > 0 && (
-        <footer className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-3xl z-50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between px-8 animate-scale-in">
-          <div className="flex flex-col">
-            <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">Selected Games</span>
-            <span className="text-white font-black text-lg">{selectedCount} รายการ</span>
-          </div>
-          <button
-            onClick={onConfirm}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-lg shadow-blue-500/30 transform hover:scale-105 active:scale-95 flex items-center gap-3"
-          >
-            <span>ยืนยันรายการ</span>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-          </button>
-        </footer>
-      )}
     </div>
   );
 };

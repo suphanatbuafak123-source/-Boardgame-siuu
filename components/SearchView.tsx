@@ -90,21 +90,6 @@ const SearchView: React.FC<SearchViewProps> = ({
           ))}
         </div>
       )}
-
-      {selectedCount > 0 && (
-        <footer className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-[30px] z-50 shadow-2xl flex items-center justify-between px-10 animate-scale-in">
-          <div className="flex flex-col">
-            <span className="text-blue-400 text-xs font-black uppercase tracking-widest">Selected</span>
-            <span className="text-white font-black text-xl">{selectedCount}</span>
-          </div>
-          <button
-            onClick={onConfirm}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-xl shadow-blue-500/20 transform hover:scale-105 active:scale-95"
-          >
-            ยืนยันรายการ
-          </button>
-        </footer>
-      )}
     </div>
   );
 };

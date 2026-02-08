@@ -34,19 +34,19 @@ const App: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   
-  // Seasonal Logic
-  const currentSeason = useMemo((): Season => {
-    const month = new Date().getMonth(); // 0 = Jan, 11 = Dec
-    if (month >= 2 && month <= 4) return 'summer'; // Mar - May
-    if (month >= 5 && month <= 9) return 'rainy';  // Jun - Oct
-    return 'winter';                               // Nov - Feb
-  }, []);
+  // Seasonal Logic with State to allow manual override
+  const [currentSeason, setCurrentSeason] = useState<Season>(() => {
+    const month = new Date().getMonth();
+    if (month >= 2 && month <= 4) return 'summer';
+    if (month >= 5 && month <= 9) return 'rainy';
+    return 'winter';
+  });
 
   const themeConfig = useMemo(() => {
     switch (currentSeason) {
-      case 'summer': return { bg: 'bg-orange-50', header: 'border-orange-200', text: 'หน้ากาก้าร้อน' };
-      case 'rainy': return { bg: 'bg-teal-50', header: 'border-teal-200', text: 'หน้าฝนเย็นฉ่ำ' };
-      case 'winter': return { bg: 'bg-blue-50', header: 'border-blue-200', text: 'หน้าหนาวสดใส' };
+      case 'summer': return { bg: 'bg-orange-50', header: 'border-orange-200', text: 'หน้าร้อน (Summer)', accent: 'bg-orange-500' };
+      case 'rainy': return { bg: 'bg-teal-50', header: 'border-teal-200', text: 'หน้าฝน (Rainy)', accent: 'bg-teal-500' };
+      case 'winter': return { bg: 'bg-blue-50', header: 'border-blue-200', text: 'หน้าหนาว (Winter)', accent: 'bg-blue-500' };
     }
   }, [currentSeason]);
 
@@ -187,7 +187,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`${themeConfig?.bg} min-h-screen font-sans text-slate-800 pb-20 transition-colors duration-1000 relative`}>
+    <div className={`${themeConfig?.bg} min-h-screen font-sans text-slate-800 pb-20 transition-all duration-1000 relative`}>
       <SeasonalEffect season={currentSeason} />
       
       <Header 
@@ -200,12 +200,60 @@ const App: React.FC = () => {
       
       <main className="container mx-auto px-4 py-8 overflow-hidden relative z-10">
         <div className="flex justify-center mb-4">
-          <div className="bg-white/50 backdrop-blur px-4 py-1 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            Season Mode: {themeConfig?.text}
+          <div className="bg-white/50 backdrop-blur px-5 py-2 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] shadow-sm border border-white/50 flex items-center gap-3">
+             <span className={`w-2 h-2 rounded-full ${themeConfig.accent} animate-pulse`}></span>
+             {themeConfig?.text}
           </div>
         </div>
         {renderContent()}
       </main>
+
+      {/* Floating Selection Bar - Moved here to prevent it from disappearing */}
+      {(view === View.List || view === View.Search) && selectedGames.length > 0 && (
+        <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-3xl z-[200] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between px-8 animate-scale-in">
+          <div className="flex flex-col">
+            <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">Selected Games</span>
+            <span className="text-white font-black text-lg">{selectedGames.length} รายการ</span>
+          </div>
+          <button
+            onClick={handleConfirmSelection}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-lg shadow-blue-500/30 transform hover:scale-105 active:scale-95 flex items-center gap-3"
+          >
+            <span>ยืนยันรายการ</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </button>
+        </footer>
+      )}
+
+      {/* Season Switcher Dock */}
+      <div className="fixed bottom-6 right-6 z-[150] flex flex-col gap-3 group">
+          <div className="flex flex-col gap-3 scale-0 group-hover:scale-100 transition-all duration-300 origin-bottom">
+            <button 
+                onClick={() => setCurrentSeason('summer')}
+                title="หน้าร้อน"
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl transition-all ${currentSeason === 'summer' ? 'bg-orange-500 text-white scale-110' : 'bg-white text-orange-500 hover:bg-orange-50'}`}
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
+            </button>
+            <button 
+                onClick={() => setCurrentSeason('rainy')}
+                title="หน้าฝน"
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl transition-all ${currentSeason === 'rainy' ? 'bg-teal-500 text-white scale-110' : 'bg-white text-teal-500 hover:bg-teal-50'}`}
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+            </button>
+            <button 
+                onClick={() => setCurrentSeason('winter')}
+                title="หน้าหนาว"
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl transition-all ${currentSeason === 'winter' ? 'bg-blue-500 text-white scale-110' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m0 0V4.5m0 15V21"></path></svg>
+            </button>
+          </div>
+          <button className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl border border-slate-100 text-slate-400 group-hover:rotate-45 transition-transform duration-300">
+             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+          </button>
+      </div>
       
       {isConfirmationModalOpen && <ConfirmationModal selectedGames={selectedGames} onClose={() => setConfirmationModalOpen(false)} onConfirm={handleProceedToBorrow} />}
       
