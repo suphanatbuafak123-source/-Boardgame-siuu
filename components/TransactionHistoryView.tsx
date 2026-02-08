@@ -17,6 +17,11 @@ interface Transaction {
   returnTime: string | null;
 }
 
+const thaiMonthsFull = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+];
+
 const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,42 +48,44 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
     loadData();
   }, [loadData]);
 
-  // แก้ไขฟังก์ชันแสดงวันที่ให้เป็นปี พ.ศ.
-  const formatDate = (dateStr: any) => {
+  // ฟังก์ชันแสดงวันที่แบบ Manual ไม่ผ่าน new Date() เพื่อป้องกันเรื่อง Timezone
+  const formatThaiDate = (dateStr: string) => {
     if (!dateStr || dateStr === "-") return "-";
-    try {
-      // พยายามแยกวันที่ออกจาก String (เช่น "2024-05-20" หรือ "2024-05-20 14:00:00")
-      const onlyDate = String(dateStr).split(' ')[0];
-      const d = new Date(onlyDate);
-      
-      if (isNaN(d.getTime())) {
-        return String(dateStr);
-      }
-      
-      // ใช้ th-TH เพื่อให้แสดงเป็นปี พ.ศ. (เช่น 2567)
-      return d.toLocaleDateString('th-TH', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    } catch {
-      return String(dateStr);
-    }
+    
+    // คาดหวังรูปแบบ yyyy-mm-dd หรือ yyyy-mm-dd HH:mm:ss
+    const cleanDate = dateStr.split(' ')[0]; 
+    const parts = cleanDate.split('-');
+    
+    if (parts.length !== 3) return dateStr;
+
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]);
+    const day = parseInt(parts[2]);
+
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
+
+    return `${day} ${thaiMonthsFull[month - 1]} ${year + 543}`;
   };
 
-  // ฟังก์ชันล้างค่าเวลา (ในกรณีที่ Script ส่งมาเป็น String ที่มีวันที่ติดมาด้วย)
-  const formatTime = (timeStr: string | null) => {
-    if (!timeStr || timeStr === "-") return "-";
-    // ถ้ามีช่องว่าง (แสดงว่าเป็น Date ISO String) ให้เอาเฉพาะส่วนเวลา
-    if (timeStr.includes('T')) {
-        return timeStr.split('T')[1].split('.')[0];
-    }
-    // ถ้ามีวันที่ติดมาแบบ "2024-05-20 14:00:00" ให้เอาเฉพาะ 14:00:00
+  // ฟังก์ชันล้างค่าเวลา เอาเฉพาะ HH:mm
+  const formatCleanTime = (timeStr: string | null) => {
+    if (!timeStr || timeStr === "-" || timeStr === "null") return "-";
+    
+    // ถ้ามีวันที่ติดมาด้วย (เช่น "2024-05-20 14:00:00")
+    let timeOnly = timeStr;
     if (timeStr.includes(' ')) {
-        const parts = timeStr.split(' ');
-        return parts[parts.length - 1];
+      timeOnly = timeStr.split(' ')[1];
+    } else if (timeStr.includes('T')) {
+      timeOnly = timeStr.split('T')[1].split('.')[0];
     }
-    return timeStr;
+
+    // เอาเฉพาะ HH:mm (ตัดวินาทีออกเพื่อความสวยงาม)
+    const timeParts = timeOnly.split(':');
+    if (timeParts.length >= 2) {
+      return `${timeParts[0]}:${timeParts[1]} น.`;
+    }
+    
+    return timeOnly;
   };
 
   return (
@@ -88,7 +95,10 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           กลับหน้าหลัก
         </button>
-        <h2 className="text-3xl font-black text-slate-800 text-center flex-1">ประวัติการยืม-คืนทั้งหมด</h2>
+        <div className="text-center flex-1">
+            <h2 className="text-3xl font-black text-slate-800">ประวัติการยืม-คืน</h2>
+            <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Transaction Logs</p>
+        </div>
         <button onClick={loadData} disabled={isLoading} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-all disabled:opacity-50 self-end">
           <svg className={`w-6 h-6 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
         </button>
@@ -106,50 +116,58 @@ const TransactionHistoryView: React.FC<TransactionHistoryViewProps> = ({ onBack 
           <button onClick={loadData} className="bg-red-600 hover:bg-red-700 text-white font-black py-4 px-10 rounded-2xl">ลองใหม่</button>
         </div>
       ) : transactions.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-[40px] border-4 border-dashed border-slate-100">
+        <div className="text-center py-20 bg-white rounded-[40px] border-4 border-dashed border-slate-100 shadow-sm">
           <p className="text-slate-400 font-bold text-xl">ยังไม่มีประวัติการทำรายการในระบบ</p>
         </div>
       ) : (
-        <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-[40px] shadow-xl border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-xs font-black uppercase tracking-wider">
-                  <th className="px-6 py-5">วันที่</th>
+                <tr className="bg-slate-50 text-slate-500 text-[11px] font-black uppercase tracking-wider border-b border-slate-100">
+                  <th className="px-6 py-5">วันที่ทำรายการ</th>
                   <th className="px-6 py-5">ชื่อบอร์ดเกม</th>
-                  <th className="px-6 py-5">ผู้ยืม</th>
+                  <th className="px-6 py-5">รหัสนักศึกษา</th>
                   <th className="px-6 py-5">ห้อง/สาขา</th>
                   <th className="px-6 py-5">เวลายืม</th>
                   <th className="px-6 py-5">เวลาคืน</th>
                   <th className="px-6 py-5 text-center">สถานะ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-50">
                 {transactions.map((t, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-6 py-4 text-slate-600 font-medium text-sm whitespace-nowrap">
-                      {formatDate(t.date)}
+                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors group">
+                    <td className="px-6 py-5">
+                      <p className="text-slate-600 font-bold text-sm">{formatThaiDate(t.date)}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-slate-800 font-black text-base">{t.gameName}</p>
+                    <td className="px-6 py-5">
+                      <p className="text-slate-800 font-black text-base group-hover:text-blue-700 transition-colors">{t.gameName}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-blue-600 font-bold">{t.studentId}</p>
+                    <td className="px-6 py-5">
+                      <p className="text-blue-600 font-black">{t.studentId}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <p className="text-slate-500 text-xs font-bold uppercase">{t.classroom} | {t.major}</p>
                     </td>
-                    <td className="px-6 py-4 text-slate-500 text-sm font-medium whitespace-nowrap">
-                      {formatTime(t.borrowTime)}
+                    <td className="px-6 py-5">
+                      <p className="text-slate-600 text-sm font-bold bg-slate-100 inline-block px-2 py-1 rounded-lg">
+                        {formatCleanTime(t.borrowTime)}
+                      </p>
                     </td>
-                    <td className="px-6 py-4 text-slate-500 text-sm font-medium whitespace-nowrap">
-                      {formatTime(t.returnTime)}
+                    <td className="px-6 py-5">
+                      <p className={`text-sm font-bold inline-block px-2 py-1 rounded-lg ${t.returnTime ? 'text-slate-600 bg-slate-100' : 'text-slate-300'}`}>
+                        {formatCleanTime(t.returnTime)}
+                      </p>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-5 text-center">
                       {t.returnTime ? (
-                        <span className="bg-green-100 text-green-700 text-[10px] font-black px-3 py-1.5 rounded-full">คืนแล้ว</span>
+                        <div className="flex flex-col items-center">
+                            <span className="bg-green-100 text-green-700 text-[10px] font-black px-3 py-1.5 rounded-full ring-1 ring-green-200">คืนแล้ว</span>
+                        </div>
                       ) : (
-                        <span className="bg-orange-100 text-orange-700 text-[10px] font-black px-3 py-1.5 rounded-full animate-pulse">ยังไม่คืน</span>
+                        <div className="flex flex-col items-center">
+                            <span className="bg-orange-100 text-orange-700 text-[10px] font-black px-3 py-1.5 rounded-full animate-pulse ring-1 ring-orange-200">ยังไม่คืน</span>
+                        </div>
                       )}
                     </td>
                   </tr>

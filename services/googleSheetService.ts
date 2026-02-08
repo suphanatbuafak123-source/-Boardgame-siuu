@@ -2,7 +2,7 @@
 import { BorrowerInfo } from '../types';
 
 // สำคัญ: ต้องเป็น URL จากการ Deploy ล่าสุด (Deploy -> New Deployment -> Anyone)
-const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzHGUVNmmdjR3QddFsdNCX-UsalQ_YBrrg0B5CgyZia4LVRNoCtQUPy02aCo3-huTpfUw/exec';
+const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbw1zRjZaDtOJ-15749nDZZWTWs26iyiQduo3QeE0613pvHFgNMHJ1CAEkmWfxMfdM7nEA/exec';
 
 interface ApiResponse {
   status: 'success' | 'not_found' | 'error' | 'blocked' | 'borrowed' | 'available';
