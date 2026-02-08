@@ -33,8 +33,6 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>(View.List);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [isRolling, setIsRolling] = useState(false);
-  const [randomGame, setRandomGame] = useState<BoardGame | null>(null);
   
   const [currentSeason, setCurrentSeason] = useState<Season>(() => {
     const month = new Date().getMonth();
@@ -120,18 +118,6 @@ const App: React.FC = () => {
     }
   };
 
-  const rollDice = () => {
-    setIsRolling(true);
-    setRandomGame(null);
-    setTimeout(() => {
-      const popular = boardGames.filter(g => g.isPopular);
-      const target = popular.length > 0 ? popular : boardGames;
-      const game = target[Math.floor(Math.random() * target.length)];
-      setRandomGame(game);
-      setIsRolling(false);
-    }, 1200);
-  };
-
   const selectedGames = useMemo(() => boardGames.filter(game => game.selected), [boardGames]);
   const handleToggleSelect = (id: number) => setBoardGames(prev => prev.map(g => g.id === id ? { ...g, selected: !g.selected } : g));
   const handleConfirmSelection = () => selectedGames.length > 0 ? setConfirmationModalOpen(true) : alert('กรุณาเลือกเกม');
@@ -178,39 +164,6 @@ const App: React.FC = () => {
         )}
         {view === View.List && <BoardGameList boardGames={boardGames} onToggleSelect={handleToggleSelect} onConfirm={handleConfirmSelection} selectedCount={selectedGames.length} />}
       </main>
-
-      {/* Floating Dice Button (Random Game Picker) */}
-      <div className="fixed bottom-6 right-24 z-[150]">
-          <button 
-            onClick={rollDice}
-            className={`w-14 h-14 ${themeConfig.btn} text-white rounded-2xl flex items-center justify-center shadow-2xl transition-all transform hover:scale-110 active:scale-95 group relative`}
-            title="สุ่มเกมที่น่าสนใจ"
-          >
-            <svg className={`w-8 h-8 ${isRolling ? 'animate-spin' : 'group-hover:rotate-12 transition-transform'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2z"></path><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"></circle><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"></circle><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"></circle><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"></circle></svg>
-            <span className="absolute -top-12 right-0 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">วันนี้เล่นเกมไหนดี?</span>
-          </button>
-      </div>
-
-      {/* Random Game Modal */}
-      {randomGame && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[1000] flex items-center justify-center p-4">
-           <div className="bg-white rounded-[40px] p-8 max-w-sm w-full text-center animate-scale-in border-4 border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.5)]">
-              <div className="text-blue-600 font-black text-xs uppercase tracking-widest mb-4">✨ Recommended For You ✨</div>
-              <img src={randomGame.imageUrl} className="w-full h-48 object-cover rounded-3xl mb-6 shadow-xl" />
-              <h3 className="text-3xl font-black text-slate-800 mb-2">{randomGame.name}</h3>
-              <p className="text-slate-500 text-sm mb-8">{randomGame.description}</p>
-              <div className="flex gap-4">
-                <button onClick={()=>setRandomGame(null)} className="flex-1 py-4 font-bold text-slate-400">ปิด</button>
-                <button 
-                  onClick={()=>{handleToggleSelect(randomGame.id); setRandomGame(null);}} 
-                  className={`flex-1 ${themeConfig.btn} text-white font-black py-4 rounded-2xl transition-all shadow-lg`}
-                >
-                  เลือกเกมนี้เลย!
-                </button>
-              </div>
-           </div>
-        </div>
-      )}
 
       {/* Seasonal Control & Selection Bar */}
       {(view === View.List || view === View.Search) && selectedGames.length > 0 && (
